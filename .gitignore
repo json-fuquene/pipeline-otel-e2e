@@ -5,3 +5,12 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 postgres_data/
+
+# Terraform: conservar el estado local fuera del control de versiones.
+**/.terraform/*
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/terraform.tfvars
+!**/terraform.tfvars.example
+**/crash.log
+**/crash.*.log

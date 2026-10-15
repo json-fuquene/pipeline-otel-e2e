@@ -1,0 +1,3 @@
+allowed_cidr = "181.61.246.55/32"
+# Sustituir por la IP/CIDR público desde donde se ejecutarán las pruebas.
+image_tag = "phase2-test-4"
