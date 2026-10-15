@@ -1,0 +1,129 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.163.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./docker/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      POSTGRES_DB: pipeline
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      ORDERS_DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-services.sh:/docker-entrypoint-initdb.d/10-init-services.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  catalog-migrate:
+    build:
+      context: .
+      dockerfile: services/catalog/Dockerfile
+    command: ["alembic", "-c", "services/catalog/alembic.ini", "upgrade", "head"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: catalog_app
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  orders-migrate:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    command: ["alembic", "-c", "services/orders/alembic.ini", "upgrade", "head"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: orders_app
+      DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  catalog:
+    build:
+      context: .
+      dockerfile: services/catalog/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: catalog_app
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      LOG_LEVEL: INFO
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_METRICS_PORT: "9464"
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
+    ports:
+      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:9464:9464"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      catalog-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=10).read()"
+      interval: 5s
+      timeout: 15s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: orders_app
+      DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      CATALOG_BASE_URL: http://catalog:8000
+      LOG_LEVEL: INFO
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_METRICS_PORT: "9464"
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
+    ports:
+      - "127.0.0.1:8002:8000"
+      - "127.0.0.1:9465:9464"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      orders-migrate:
+        condition: service_completed_successfully
+      catalog:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=10).read()"
+      interval: 5s
+      timeout: 15s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
