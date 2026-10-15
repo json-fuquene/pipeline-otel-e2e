@@ -1,0 +1,80 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expr": "100 * sum(rate(pipeline_http_server_request_duration_seconds_count{exported_job=\"catalog\",http_response_status_code=~\"2..|3..\"}[5m])) / clamp_min(sum(rate(pipeline_http_server_request_duration_seconds_count{exported_job=\"catalog\"}[5m])), 1e-9)", "legendFormat": "catalog", "refId": "A"}],
+      "title": "Éxito HTTP — catálogo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(pipeline_http_server_request_duration_seconds_bucket{exported_job=\"catalog\"}[5m])))", "legendFormat": "catalog p95", "refId": "A"}],
+      "title": "Latencia HTTP p95 — catálogo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expr": "100 * sum(rate(pipeline_http_server_request_duration_seconds_count{exported_job=\"orders\",http_response_status_code=~\"2..|3..\"}[5m])) / clamp_min(sum(rate(pipeline_http_server_request_duration_seconds_count{exported_job=\"orders\"}[5m])), 1e-9)", "legendFormat": "orders", "refId": "A"}],
+      "title": "Éxito HTTP — pedidos",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(pipeline_http_server_request_duration_seconds_bucket{exported_job=\"orders\"}[5m])))", "legendFormat": "orders p95", "refId": "A"}],
+      "title": "Latencia HTTP p95 — pedidos",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 5,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"alias": "ECS service CPU", "datasource": {"type": "cloudwatch", "uid": "cloudwatch"}, "dimensions": {"ClusterName": "pipeline-otel-test", "ServiceName": "pipeline-otel-test"}, "expression": "", "hide": false, "id": "", "label": "", "logGroups": [], "matchExact": false, "metricEditorMode": 0, "metricName": "CPUUtilization", "metricQueryType": 0, "namespace": "AWS/ECS", "period": "60", "queryMode": "Metrics", "refId": "A", "region": "us-east-1", "sqlExpression": "", "statistic": "Average"}],
+      "title": "CPU del servicio ECS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0, "noValue": "0"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 6,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expression": "fields @timestamp, @message, @logStream\n| filter @logStream like /otel-collector/\n| filter @message like /error|ERROR|failed/\n| stats count(*) as errors by bin(1m)", "id": "log1", "logsMode": "Logs", "logGroupNames": ["/ecs/pipeline-otel-test"], "queryLanguage": "CWLI", "queryMode": "Logs", "queryType": "range", "refId": "A", "region": "us-east-1"}],
+      "title": "Errores OTel Collector",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["opentelemetry", "ecs", "pipeline"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OpenTelemetry — laboratorio ECS",
+  "uid": "otel-lab",
+  "version": 1
+}

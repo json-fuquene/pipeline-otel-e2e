@@ -15,7 +15,7 @@ resource "aws_ecs_task_definition" "lab" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "1024"
-  memory                   = "2048"
+  memory                   = "3072"
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
 
@@ -90,6 +90,14 @@ resource "aws_ecs_task_definition" "lab" {
       name             = "prometheus", image = "${var.ecr_urls["prometheus"]}:${var.image_tag}", essential = true, memoryReservation = 256,
       portMappings     = [{ containerPort = 9090, hostPort = 9090, protocol = "tcp" }],
       dependsOn        = [{ containerName = "otel-collector", condition = "START" }],
+      logConfiguration = { logDriver = "awslogs", options = local.log_options }
+    },
+    {
+      name             = "grafana", image = "${var.ecr_urls["grafana"]}:${var.image_tag}", essential = true, memoryReservation = 384,
+      portMappings     = [{ containerPort = 3000, hostPort = 3000, protocol = "tcp" }],
+      environment      = [{ name = "GF_SECURITY_ADMIN_USER", value = "admin" }, { name = "GF_AUTH_ANONYMOUS_ENABLED", value = "false" }, { name = "GF_USERS_ALLOW_SIGN_UP", value = "false" }, { name = "AWS_REGION", value = var.aws_region }],
+      secrets          = [{ name = "GF_SECURITY_ADMIN_PASSWORD", valueFrom = var.grafana_secret_arn }],
+      dependsOn        = [{ containerName = "prometheus", condition = "START" }, { containerName = "jaeger", condition = "START" }],
       logConfiguration = { logDriver = "awslogs", options = local.log_options }
     }
   ])

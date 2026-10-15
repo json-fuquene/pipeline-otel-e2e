@@ -6,5 +6,5 @@ output "cluster_name" { value = module.ecs.cluster_name }
 output "service_name" { value = module.ecs.service_name }
 output "security_group_id" { value = module.network.security_group_id }
 output "endpoints" {
-  value = "La IP pública de la tarea aparece en ECS > ${module.ecs.cluster_name} > Tasks. Puertos: 8001 catálogo, 8002 pedidos, 16686 Jaeger, 9090 Prometheus."
+  value = "La IP pública de la tarea aparece en ECS > ${module.ecs.cluster_name} > Tasks. Puertos: 3000 Grafana, 8001 catálogo, 8002 pedidos, 16686 Jaeger, 9090 Prometheus."
 }

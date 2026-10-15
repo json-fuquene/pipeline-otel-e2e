@@ -8,7 +8,7 @@
 |---|---|
 | Plan | ID-002 — Observabilidad OpenTelemetry local, ECS y visualización. |
 | Fase | 3 — Visualización y correlación en ECS |
-| Estado | Pendiente |
+| Estado | Ajuste del panel CPU publicado como `phase3-test-4`; revisión 8 de ECS en rollout. Estabilidad y validación en UI pendientes. |
 | Requisitos | RF-018–RF-022, RNF-008–RNF-009; validación extremo a extremo de RF-002, RF-011–RF-013 y RF-019. |
 | Sistemas y repositorios | Aplicación, `infra/otel-ecs-lab` y módulos Terraform compartidos en `infra/tf_modules`. |
 | Dependencias previas | Fases 1 y 2; despliegue ECS activo; imágenes publicadas; CIDR de prueba disponible; permisos Terraform/ECR/ECS/CloudWatch. |
@@ -20,7 +20,7 @@ Consultar en Grafana un dashboard de seis paneles y localizar desde Grafana Expl
 
 ## Contexto de la fase
 
-La fase 2 despliega Jaeger, Prometheus, el OTel Collector y CloudWatch Logs en ECS. Los backends tienen endpoints funcionales, pero todavía no hay una vista común de SLIs, CPU, errores del Collector y correlación entre registros y trazas. El despliegue reciente confirmó una tarea ECS estable; falta validar los datos funcionales en las interfaces.
+La fase 2 despliega Jaeger, Prometheus, el OTel Collector y CloudWatch Logs en ECS. Grafana provisiona una vista común de SLIs, CPU, errores del Collector y correlación entre registros y trazas. El panel CPU no inició una consulta desde el dashboard aunque CloudWatch devuelve datos al consultar desde Explore. Se ajustó el target del panel para declarar explícitamente su datasource CloudWatch y completar los campos del editor de métricas. El tag `phase3-test-4` se publicó y la revisión 8 está en rollout; todavía falta confirmar estabilidad y probar el panel en la UI.
 
 ## Alcance técnico
 
@@ -60,12 +60,12 @@ El tamaño actual de la tarea es 1 vCPU y 2 GiB. La configuración de fase usa 1
 | 2 | Latencia HTTP p95 — catálogo | Prometheus | Percentil 95 del histograma de duración HTTP del servicio, en segundos o milisegundos rotulados. | Serie no vacía tras enviar tráfico. |
 | 3 | Éxito HTTP — pedidos | Prometheus | Proporción de respuestas 2xx/3xx sobre todas las solicitudes del servicio en ventana de 5 minutos. | Serie porcentual no vacía tras enviar tráfico. |
 | 4 | Latencia HTTP p95 — pedidos | Prometheus | Percentil 95 del histograma de duración HTTP del servicio, en segundos o milisegundos rotulados. | Serie no vacía tras enviar tráfico. |
-| 5 | CPU del servicio ECS | CloudWatch Metrics | `AWS/ECS/CPUUtilization`, dimensiones `ClusterName` y `ServiceName`, estadística Average, región `us-east-1`. | Puntos de datos dentro de la ventana de tiempo. |
+| 5 | CPU del servicio ECS | CloudWatch Metrics | Target con datasource CloudWatch explícita; `AWS/ECS/CPUUtilization`, dimensiones `ClusterName` y `ServiceName`, estadística Average, región `us-east-1`, periodo 60 s. | Tras finalizar el rollout, el panel debe emitir una consulta desde el dashboard y mostrar puntos en la ventana seleccionada; todavía pendiente de validación en UI. |
 | 6 | Errores OTel Collector | CloudWatch Logs Insights | Conteo por minuto de eventos con nivel `error`/`ERROR` o texto de fallo del stream del contenedor `otel-collector`. | Serie de conteos, incluido cero cuando no haya errores; el error `pipeline_up` observado durante el despliegue sirve para comprobar la consulta inicial. |
 
 Los nombres y etiquetas Prometheus se fijan después de consultar `/metrics` del Collector y Prometheus. La consulta exacta debe usar los nombres emitidos por la versión del SDK desplegada y `service.name`; los paneles no se aceptan con consultas vacías o métricas ficticias.
 
-Como punto de partida después de verificar que la serie y etiquetas existen, la tasa de éxito usa la forma `100 * solicitudes con status 2xx/3xx / todas las solicitudes` en una ventana de 5 minutos. La latencia p95 usa `histogram_quantile(0.95, sum by (le) (rate(<histograma>_bucket{service_name="catalog"}[5m])))`; se replica para `orders`. Si el exporter agrega un prefijo como `pipeline_` o transforma una etiqueta, se usa el nombre observado en Prometheus. El panel de errores parte de esta consulta Logs Insights y la ajusta al formato real del stream:
+Como punto de partida después de verificar que la serie y etiquetas existen, la tasa de éxito usa la forma `100 * solicitudes con status 2xx/3xx / todas las solicitudes` en una ventana de 5 minutos. La latencia p95 usa `histogram_quantile(0.95, sum by (le) (rate(<histograma>_bucket{exported_job="catalog"}[5m])))`; se replica para `orders`. La revisión 7 confirmó el prefijo `pipeline_` y la etiqueta `exported_job` en las muestras reales. El panel de errores parte de esta consulta Logs Insights y la ajusta al formato real del stream:
 
 ```text
 fields @timestamp, @message, @logStream
@@ -91,12 +91,12 @@ Las tareas marcadas con `[P]` pueden ejecutarse en paralelo.
 
 | Estado | # | Tarea | Criterio de aceptación |
 |---|---|---|---|
-| [ ] | 1 | Confirmar los nombres reales de métricas y etiquetas disponibles en Prometheus para ambas APIs. | Se conservan muestras de `/metrics` y consultas PromQL que retornan datos; se anotan nombres/labels en el dashboard. |
-| [ ] | 2 | `[P]` Crear la imagen Grafana con versión fijada y archivos de provisioning. | `docker build` finaliza; config y dashboard pasan sus validaciones JSON/YAML; Grafana carga las tres fuentes. |
-| [ ] | 3 | `[P]` Agregar el repositorio ECR y ampliar el script para construir/publicar Grafana con tag inmutable. | El tag Grafana aparece en ECR y coincide con el tag de la task definition. |
-| [ ] | 4 | `[P]` Definir el dashboard y las consultas del panel CloudWatch Logs Insights. | Existen exactamente seis paneles; las consultas no contienen credenciales ni recursos de otra cuenta. |
-| [ ] | 5 | Extender Terraform con Grafana, permisos mínimos, secreto de administración, puerto 3000 limitado y tamaño de tarea de 1 vCPU/3 GiB. | `terraform fmt`, `validate` y `plan` pasan; el plan muestra solo recursos/cambios previstos. |
-| [ ] | 6 | Construir, publicar y aplicar el nuevo tag inmutable; esperar estabilización de ECS. | Rollout `COMPLETED`, una tarea `RUNNING`, contenedores esenciales saludables/en ejecución y migraciones con código 0. |
+| [x] | 1 | Confirmar los nombres reales de métricas y etiquetas disponibles en Prometheus para ambas APIs. | Prometheus expone `pipeline_http_server_request_duration_seconds_{count,bucket,sum}` con `exported_job=catalog|orders`; las cuatro consultas del dashboard retornan datos. |
+| [x] | 2 | `[P]` Crear la imagen Grafana con versión fijada y archivos de provisioning. | Build Grafana 12.2.0 exitoso; API local confirmó la carga del dashboard y las tres fuentes. |
+| [x] | 3 | `[P]` Agregar el repositorio ECR y ampliar el script para construir/publicar Grafana con tag inmutable. | Las siete imágenes se publicaron con el tag `phase3-test-4`. |
+| [ ] | 4 | `[P]` Definir el dashboard y las consultas del panel CloudWatch Logs Insights. | El target CPU declara datasource CloudWatch y campos explícitos del editor de métricas; la consulta y renderizado del panel aún requieren validación en UI. |
+| [ ] | 5 | Extender Terraform con Grafana, permisos mínimos, secreto de administración, puerto 3000 limitado y tamaño de tarea de 1 vCPU/3 GiB. | Revisión 8 aplicada; confirmar estabilidad del rollout y revisar los cambios finales del servicio. |
+| [ ] | 6 | Construir, publicar y aplicar el nuevo tag inmutable; esperar estabilización de ECS. | Tag `phase3-test-4` publicado y revisión 8 en rollout; confirmar una tarea saludable y migraciones exitosas al completar el despliegue. |
 | [ ] | 7 | Ejecutar el recorrido funcional, consultar el dashboard y pivotar entre log y traza. | Se obtienen las evidencias descritas en la sección siguiente. |
 | [ ] | 8 | Destruir el laboratorio después de exportar evidencia y verificar limpieza. | No queda servicio/tarea ECS del laboratorio ni recursos nuevos de Grafana; evidencia exportada sin secretos. |
 
@@ -136,13 +136,13 @@ Para incluir también los módulos compartidos, ejecutar desde la raíz `terrafo
 Primero crear el repositorio ECR nuevo sin reemplazar los repositorios existentes y publicar Grafana con un tag nuevo (ECR usa tags inmutables). Luego generar y revisar el plan completo:
 
 ```sh
-terraform apply -target='module.ecr.aws_ecr_repository.images["grafana"]'
-terraform output -json ecr_urls > /tmp/pipeline-otel-ecr-urls.json
-python3 /home/ajfuq/projects/pipeline-otel-end-to-end/scripts/push-ecs-images.py us-east-1 /tmp/pipeline-otel-ecr-urls.json phase3-test-1
-# Configurar image_tag = "phase3-test-1" en terraform.tfvars.
-terraform plan -out=/tmp/phase3.tfplan
-terraform show -no-color /tmp/phase3.tfplan
-terraform apply /tmp/phase3.tfplan
+terraform -chdir=infra/otel-ecs-lab apply -target='module.ecr.aws_ecr_repository.images["grafana"]'
+terraform -chdir=infra/otel-ecs-lab output -json ecr_urls > /tmp/pipeline-otel-ecr-urls.json
+python3 /home/ajfuq/projects/pipeline-otel-end-to-end/scripts/push-ecs-images.py us-east-1 /tmp/pipeline-otel-ecr-urls.json phase3-test-4
+# Configurar image_tag = "phase3-test-4" en terraform.tfvars.
+terraform -chdir=infra/otel-ecs-lab plan -out=/tmp/phase3.tfplan
+terraform -chdir=infra/otel-ecs-lab show -no-color /tmp/phase3.tfplan
+terraform -chdir=infra/otel-ecs-lab apply /tmp/phase3.tfplan
 aws ecs wait services-stable --region us-east-1 --cluster pipeline-otel-test --services pipeline-otel-test
 aws ecs describe-services --region us-east-1 --cluster pipeline-otel-test --services pipeline-otel-test \
   --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount,taskDefinition:taskDefinition,deployments:deployments[].{status:status,rollout:rolloutState}}' \
@@ -162,7 +162,7 @@ aws ecs describe-tasks --region us-east-1 --cluster pipeline-otel-test --tasks T
   --output json
 ```
 
-**Evidencia:** `03-ecs-estable.json`, con cuenta/ARN/IP redactados si se comparte fuera del equipo. Debe mostrar rollout `COMPLETED`, `running=1`, `pending=0`, Grafana/Collector/Jaeger/Prometheus/APIs en ejecución, PostgreSQL saludable y ambas migraciones con `exitCode=0`.
+**Evidencia:** `03-ecs-estable.json`, con cuenta/ARN/IP redactados si se comparte fuera del equipo. Solo después de finalizar el rollout debe mostrar rollout `COMPLETED`, `running=1`, `pending=0`, Grafana/Collector/Jaeger/Prometheus/APIs en ejecución, PostgreSQL saludable y ambas migraciones con `exitCode=0`. La revisión 8 sigue en rollout al actualizar este documento.
 
 ### 3. Prueba de APIs, SLIs y dashboard
 
@@ -230,20 +230,21 @@ aws ecs describe-services --region us-east-1 --cluster pipeline-otel-test --serv
 | Estado | Elemento | Impacto | Mitigación o siguiente acción |
 |---|---|---|---|
 | Abierto | Grafana aumenta el uso de memoria y costo de Fargate mientras el servicio esté activo. | Medio | Usar 1 vCPU/3 GiB en el smoke test, revisar estado `RUNNING` y destruir al terminar. |
-| Abierto | Las métricas HTTP reales pueden variar de nombre/etiquetas según SDK/exporter. | Medio | Consultar muestras efectivas en Prometheus antes de fijar PromQL. |
+| Cerrado | Las métricas HTTP reales pueden variar de nombre/etiquetas según SDK/exporter. | Resuelto | Prometheus mostró `exported_job`; se actualizaron las consultas del dashboard y se validaron en Grafana. |
 | Abierto | El task role se comparte entre los contenedores de la tarea. | Medio | Acotar las acciones CloudWatch y ARNs de log groups a lectura de los dos grupos requeridos. |
 | Abierto | Los datos de Jaeger y el filesystem de Grafana son efímeros. | Bajo | Reprovisionar desde archivos y guardar evidencia fuera de la tarea antes de destruirla. |
-| Abierto | Los logs actuales muestran un error de conversión del exportador Prometheus para `pipeline_up`. | Medio | Incluirlo en el panel de errores, aislar si es recurrente y registrar el resultado; no ocultarlo en la consulta. |
+| Cerrado | El exportador Prometheus descartaba métricas por etiquetas duplicadas con `resource_to_telemetry_conversion`. | Resuelto | Se desactivó esa conversión en `docker/otel-collector/ecs.yaml`; el cambio se conserva en los despliegues siguientes. |
+| Abierto | El panel CPU no recogía una consulta al usar Inspect desde el dashboard pese a que Explore devolvía datos. | Medio | El target del dashboard ahora declara su datasource CloudWatch explícitamente y completa los campos del editor de métricas. La revisión 8 está en rollout; verificar Inspect y el renderizado en la UI después de que termine. |
 
 ## Cierre de la fase
 
-- **Resultado obtenido:** Pendiente.
-- **Desviaciones respecto al diseño:** Pendiente.
+- **Resultado obtenido:** Se publicó `phase3-test-4` y se aplicó la revisión 8 de ECS. El rollout sigue en curso, por lo que no se confirma estabilidad ni se afirma que el panel CPU ya renderice en la UI. El target de CPU explicita datasource CloudWatch y los campos del editor de métricas; la validación en UI queda pendiente.
+- **Desviaciones respecto al diseño:** El Collector convierte la etiqueta de servicio a `exported_job`; las consultas PromQL usan esa etiqueta. Se desactivó la conversión de atributos de recurso a etiquetas para evitar duplicados.
 - **Decisiones tomadas durante la fase:** D-013 y D-014; agregar decisiones nuevas a `00-especificacion.md` si se requiere cambiar alcance.
-- **Requisitos afectados en su cobertura:** RF-018–RF-022 y RNF-008–RNF-009 pendientes de validar.
-- **Actualizaciones aplicadas a `00-plan-general.md`:** Pendiente de Gate 3.
-- **Actualizaciones aplicadas a `00-especificacion.md`:** Pendiente de Gate 3.
-- **Pendientes trasladados:** Pendiente.
+- **Requisitos afectados en su cobertura:** RF-018, RF-020, RF-022 y RNF-008–RNF-009 requieren completar verificación runtime/UI con la revisión 8. RF-019 y RF-021 requieren terminar la evidencia funcional log→traza en Jaeger.
+- **Actualizaciones aplicadas a `00-plan-general.md`:** Despliegue ECS y validación de dashboard completados; recorrido log→traza y destrucción del laboratorio pendientes.
+- **Actualizaciones aplicadas a `00-especificacion.md`:** Sin cambio de alcance; se conserva el requisito de validar consultas contra muestras reales.
+- **Pendientes trasladados:** Validar el pivote log→traza en Jaeger, guardar capturas/resultados como evidencias y destruir recursos al terminar la captura.
 
 ## Referencias
 

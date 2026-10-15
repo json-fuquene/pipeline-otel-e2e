@@ -21,6 +21,22 @@ resource "aws_secretsmanager_secret_version" "database" {
   })
 }
 
+resource "random_password" "grafana" {
+  length           = 32
+  special          = false
+  override_special = ""
+}
+
+resource "aws_secretsmanager_secret" "grafana" {
+  name                    = var.grafana_secret_name
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "grafana" {
+  secret_id     = aws_secretsmanager_secret.grafana.id
+  secret_string = random_password.grafana.result
+}
+
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = var.log_group_name
   retention_in_days = 1
@@ -48,8 +64,12 @@ resource "aws_iam_role_policy" "execution_secret" {
   name = "read-lab-secret"
   role = aws_iam_role.execution.id
   policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{ Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = aws_secretsmanager_secret.database.arn }]
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = [aws_secretsmanager_secret.database.arn, aws_secretsmanager_secret.grafana.arn]
+    }]
   })
 }
 
@@ -68,5 +88,48 @@ resource "aws_iam_role_policy" "task_logs" {
       Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams", "logs:PutRetentionPolicy"]
       Resource = "${aws_cloudwatch_log_group.otel.arn}:*"
     }]
+  })
+}
+
+resource "aws_iam_role_policy" "grafana_cloudwatch_read" {
+  name = "grafana-cloudwatch-read"
+  role = aws_iam_role.task.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["cloudwatch:GetMetricData", "cloudwatch:GetMetricStatistics", "cloudwatch:ListMetrics"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:DescribeLogGroups"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogStreams",
+          "logs:FilterLogEvents",
+          "logs:GetLogEvents",
+          "logs:GetLogGroupFields"
+        ]
+        Resource = [
+          "${aws_cloudwatch_log_group.ecs.arn}:*",
+          "${aws_cloudwatch_log_group.otel.arn}:*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:StartQuery"]
+        Resource = [aws_cloudwatch_log_group.ecs.arn, aws_cloudwatch_log_group.otel.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:GetQueryResults", "logs:StopQuery"]
+        Resource = "*"
+      }
+    ]
   })
 }

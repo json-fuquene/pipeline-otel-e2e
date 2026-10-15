@@ -47,8 +47,9 @@ from services.orders.app.schemas import (
 )
 
 logger = configure_logging()
-configure_telemetry("orders")
-instrument_httpx()
+otel_enabled = configure_telemetry("orders")
+if otel_enabled:
+    instrument_httpx()
 attach_otel_logging(logger)
 tracer = get_tracer()
 
@@ -64,7 +65,8 @@ async def lifespan(app: FastAPI):
         follow_redirects=False,
     )
     try:
-        start_metrics_server()
+        if otel_enabled:
+            start_metrics_server()
         yield
     finally:
         await app.state.catalog_client.aclose()
@@ -73,11 +75,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Pedidos", version="1.0.0", lifespan=lifespan)
-FastAPIInstrumentor.instrument_app(
-    app,
-    excluded_urls="health/live,health/ready",
-    server_request_hook=sanitize_server_span,
-)
+if otel_enabled:
+    FastAPIInstrumentor.instrument_app(
+        app,
+        excluded_urls="health/live,health/ready",
+        server_request_hook=sanitize_server_span,
+    )
 
 
 @app.middleware("http")

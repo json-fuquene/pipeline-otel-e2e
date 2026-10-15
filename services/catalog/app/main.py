@@ -37,7 +37,7 @@ from services.catalog.app.telemetry import (
 from services.catalog.app.schemas import CatalogReadiness, ProductCreate, ProductOut, ProductPage
 
 logger = configure_logging()
-configure_telemetry("catalog")
+otel_enabled = configure_telemetry("catalog")
 attach_otel_logging(logger)
 tracer = get_tracer()
 
@@ -48,7 +48,8 @@ async def lifespan(app: FastAPI):
     app.state.session_factory = session_factory
     app.state.engine = engine
     try:
-        start_metrics_server()
+        if otel_enabled:
+            start_metrics_server()
         yield
     finally:
         await engine.dispose()
@@ -56,11 +57,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Catálogo", version="1.0.0", lifespan=lifespan)
-FastAPIInstrumentor.instrument_app(
-    app,
-    excluded_urls="health/live,health/ready",
-    server_request_hook=sanitize_server_span,
-)
+if otel_enabled:
+    FastAPIInstrumentor.instrument_app(
+        app,
+        excluded_urls="health/live,health/ready",
+        server_request_hook=sanitize_server_span,
+    )
 
 
 @app.middleware("http")

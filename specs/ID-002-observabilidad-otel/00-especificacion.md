@@ -8,7 +8,7 @@
 | Título | Observabilidad OpenTelemetry local y despliegue de laboratorio en ECS. |
 | Origen | Requerimiento registrado en [`fases.md`](../../fases.md). |
 | Sprint / iteración | No documentado. |
-| Estado de la especificación | Modificada para incorporar fase 3; alcance de visualización acordado el 2026-10-15. |
+| Estado de la especificación | Modificada para incorporar fases 3 y 4; la fase 4 queda especificada y sus mediciones están pendientes. |
 | Iniciativas relacionadas | ID-001 — instrumenta sus dos servicios sin cambiar sus contratos funcionales. |
 
 ## Problema
@@ -56,6 +56,7 @@ Cada servicio produce trazas, métricas HTTP y logs JSON correlacionados. Compos
 | RF-020 | Grafana presenta un dashboard de seis paneles. | El dashboard contiene éxito HTTP y latencia p95 para cada API, CPU del servicio ECS y conteo temporal de errores del OTel Collector. | Obligatorio |
 | RF-021 | Un `trace_id` de los logs permite localizar la traza relacionada desde Grafana Explore. | Al filtrar CloudWatch Logs por un `trace_id` emitido por una solicitud de prueba, el mismo identificador abre una traza coincidente en la fuente Jaeger de Grafana. | Obligatorio |
 | RF-022 | Grafana permanece accesible solo desde el CIDR de prueba. | El puerto de Grafana responde desde el origen autorizado y no se agrega una regla `0.0.0.0/0`. | Obligatorio |
+| RF-023 | Comparar overhead de las APIs con OTel activado y desactivado. | Corridas locales reproducibles bajo la misma carga/dataset reportan p99, CPU y memoria por API, con diferencias absolutas/relativas y evidencia cruda; no se acepta como evidencia una estimación no medida. | Obligatorio |
 
 ## Requisitos no funcionales
 
@@ -70,6 +71,7 @@ Cada servicio produce trazas, métricas HTTP y logs JSON correlacionados. Compos
 | RNF-007 | Reproducibilidad | Imágenes auxiliares y tags de aplicación se fijan. | ECR usa tags inmutables y las imágenes auxiliares se construyen desde Dockerfiles del repositorio. |
 | RNF-008 | Seguridad | El acceso a Grafana y CloudWatch conserva privilegios mínimos. | El acceso web usa el CIDR configurado; la contraseña de administrador no se versiona; el rol de Grafana solo consulta los grupos y métricas requeridos. |
 | RNF-009 | Operación | Grafana y sus datos de interfaz son efímeros y reproducibles. | El servicio arranca con datasources y dashboard aprovisionados desde archivos versionados; reemplazar la tarea no requiere configuración manual. |
+| RNF-010 | Reproducibilidad | La comparación de overhead conserva equivalencia entre variantes y permite recalcular sus resultados. | Se registran commit, host/runtime, versiones, recursos, parámetros de carga, al menos tres rondas válidas por variante y resultados originales; la métrica de memoria declara plataforma/semántica. |
 
 ## Casos y comportamiento esperado
 
@@ -90,7 +92,8 @@ Cada servicio produce trazas, métricas HTTP y logs JSON correlacionados. Compos
 | C-013 | Eliminar laboratorio | Ejecutar `terraform destroy`. | Los recursos efímeros se eliminan sin servicio ECS en ejecución. |
 | C-014 | Revisar dashboard | Enviar solicitudes correctas y solicitudes 4xx representativas a ambas APIs; esperar al menos dos intervalos de scrape. | Los cuatro paneles SLI muestran series no vacías y tasas coherentes con las respuestas; CPU y errores del Collector muestran datos o cero explícito. |
 | C-015 | Pivotar de log a traza | Consultar en Grafana Explore un log OTel de una solicitud y copiar su `trace_id` al query TraceID de Jaeger. | La traza encontrada contiene el mismo `trace_id` y spans de pedidos, catálogo y PostgreSQL cuando la solicitud fue un pedido válido. |
-| C-016 | Consultar recursos ECS | Abrir el dashboard mientras el servicio tiene una tarea en ejecución. | El panel CPU muestra `AWS/ECS/CPUUtilization` para el cluster y servicio de prueba, en región `us-east-1`. |
+| C-016 | Consultar recursos ECS | Abrir el dashboard mientras el servicio tiene una tarea en ejecución. | El target declara explícitamente la fuente CloudWatch y consulta `AWS/ECS/CPUUtilization` para el cluster y servicio de prueba en `us-east-1`; la consulta debe emitirse desde el panel y renderizar puntos. El ajuste publicado en revisión 8 requiere validación posterior al rollout. |
+| C-017 | Medir overhead de OTel | Ejecutar el protocolo de [`04-analisis-overhead.md`](04-analisis-overhead.md) en local con el mismo dataset semilla, configuración, recursos y carga para ambas variantes. | Se guardan al menos tres rondas válidas por variante, p99, CPU y memoria por API, datos crudos y tabla con diferencias absolutas/relativas; mientras no se ejecute, el resultado figura como pendiente, sin valores inferidos. |
 
 ## Supuestos
 
@@ -143,11 +146,14 @@ No quedan aclaraciones abiertas que afecten el diseño.
 | D-012 | Fijar imágenes auxiliares y usar tag ECR inmutable. | Tags `latest`. | Evita cambios de versión involuntarios durante pruebas. | Diseño de fase. |
 | D-013 | Conservar Jaeger y Grafana como contenedores efímeros en ECS; no agregar GCP, X-Ray ni Tempo. | Jaeger en GCP más un segundo backend AWS; X-Ray; Tempo; Amazon Managed Grafana; Grafana Cloud. | El alcance confirma reutilizar Jaeger y ejecutar Grafana dentro del laboratorio ECS. | Respuesta de alcance, 2026-10-15. |
 | D-014 | Definir los cuatro paneles SLI como tasa de éxito y latencia p95 por API; CPU desde `AWS/ECS/CPUUtilization` y errores del Collector desde sus logs CloudWatch. | Otros SLIs; CPU de contenedor mediante Container Insights; errores solo desde una métrica interna del Collector. | Conserva seis paneles y usa las señales y métricas del laboratorio; las consultas se verifican contra las series observadas. | Diseño de fase 3. |
+| D-015 | Declarar CloudWatch de forma explícita en el target de CPU y completar sus campos de consulta de métricas (`metricEditorMode`, `matchExact`, `period` y `statistic`, además de las cadenas vacías requeridas por el modelo del target). | Depender únicamente de la fuente heredada del panel o de campos omitidos. | El Query Inspector del panel no recogía una solicitud aunque Explore consultaba datos; se corrige el descriptor del target para probar de nuevo la consulta desde el dashboard. El resultado visual aún no está validado. | Ajuste fase 3, revisión 8 en rollout. |
+| D-016 | Medir overhead local con k6 y `OTEL_ENABLED` en ambas APIs, manteniendo el mismo artefacto/dependencias y deshabilitando providers e instrumentación al apagarlo. | Inferir overhead desde métricas ECS o usar dos builds con dependencias/runtime diferentes. | Controla la carga y aísla el coste operativo de inicializar/exportar señales instrumentadas; el benchmark no predice por sí mismo ECS. | Diseño de fase 4. |
 
 ## Referencias
 
 - [`fases.md`](../../fases.md) — requisito de la fase de instrumentación.
 - [`02-despliegue-ecs.md`](02-despliegue-ecs.md) — plan detallado de la fase 2.
+- [`04-analisis-overhead.md`](04-analisis-overhead.md) — diseño, protocolo y evidencia de la comparación de overhead de fase 4.
 - [`ID-001`](../ID-001-microservicios-locales/00-especificacion.md) — servicios, contratos y requisitos funcionales relacionados.
 - [OpenTelemetry Python: exportadores](https://opentelemetry.io/docs/languages/python/exporters/).
 - [Instrumentación FastAPI](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html), [HTTPX](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/httpx/httpx.html) y [SQLAlchemy](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html).

@@ -65,6 +65,7 @@ services:
       DB_USER: catalog_app
       DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
       LOG_LEVEL: INFO
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRICS_PORT: "9464"
       OTEL_SEMCONV_STABILITY_OPT_IN: http
@@ -100,6 +101,7 @@ services:
       DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
       CATALOG_BASE_URL: http://catalog:8000
       LOG_LEVEL: INFO
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRICS_PORT: "9464"
       OTEL_SEMCONV_STABILITY_OPT_IN: http

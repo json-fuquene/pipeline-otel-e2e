@@ -4,6 +4,7 @@ variable "desired_count" { type = number }
 variable "image_tag" { type = string }
 variable "ecr_urls" { type = map(string) }
 variable "database_secret_arn" { type = string }
+variable "grafana_secret_arn" { type = string }
 variable "execution_role_arn" { type = string }
 variable "task_role_arn" { type = string }
 variable "log_group_name" { type = string }

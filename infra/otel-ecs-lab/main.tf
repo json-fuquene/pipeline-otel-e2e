@@ -1,6 +1,6 @@
 locals {
   name        = "pipeline-otel-test"
-  image_names = ["catalog", "orders", "postgres", "otel-collector", "jaeger", "prometheus"]
+  image_names = ["catalog", "orders", "postgres", "otel-collector", "jaeger", "prometheus", "grafana"]
 }
 
 module "ecr" {
@@ -20,6 +20,7 @@ module "foundation" {
   name                = local.name
   log_group_name      = "/ecs/${local.name}"
   otel_log_group_name = "/pipeline-otel/ecs-test"
+  grafana_secret_name = "${local.name}/grafana"
 }
 
 module "ecs" {
@@ -30,6 +31,7 @@ module "ecs" {
   image_tag           = var.image_tag
   ecr_urls            = module.ecr.ecr_urls
   database_secret_arn = module.foundation.database_secret_arn
+  grafana_secret_arn  = module.foundation.grafana_secret_arn
   execution_role_arn  = module.foundation.execution_role_arn
   task_role_arn       = module.foundation.task_role_arn
   log_group_name      = module.foundation.log_group_name

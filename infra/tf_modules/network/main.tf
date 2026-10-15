@@ -52,7 +52,7 @@ resource "aws_security_group" "task" {
     cidr_blocks = [var.allowed_cidr]
   }
   dynamic "ingress" {
-    for_each = toset([4317, 4318, 16686, 9090])
+    for_each = toset([3000, 4317, 4318, 16686, 9090])
     content {
       from_port   = ingress.value
       to_port     = ingress.value

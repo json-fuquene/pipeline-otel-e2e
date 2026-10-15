@@ -8,13 +8,13 @@
 | Título | Observabilidad OpenTelemetry local, ECS y visualización. |
 | Sprint / iteración | No documentado. |
 | Prioridad | Alta |
-| Estado global | En implementación; fases 1 y 2 implementadas sin validación funcional integral; fase 3 pendiente. |
+| Estado global | Fase 3 en despliegue: tag `phase3-test-4` publicado y revisión 8 de ECS en rollout. La validación UI del panel CPU, la correlación log→traza y la limpieza final siguen pendientes. |
 | Sistemas y repositorios afectados | APIs, Docker Compose, Collector, Jaeger, Prometheus, Grafana, CloudWatch e IaC ECS. |
 | Iniciativas relacionadas | ID-001 — instrumenta los servicios definidos por ese plan. |
 
 ## Resumen de estado
 
-Las fases 1 y 2 tienen código y manifiestos implementados. La revisión 4 de la tarea ECS terminó su rollout con una tarea `RUNNING`, APIs saludables, PostgreSQL saludable, backends en ejecución y migraciones exitosas; falta validar el flujo de señales en las interfaces. La fase 3 agrega Grafana efímero, dashboard de seis paneles y búsqueda de trazas Jaeger a partir de logs CloudWatch.
+La revisión 8 de ECS está en rollout tras publicar `phase3-test-4`. El target del panel CPU ahora especifica explícitamente la fuente CloudWatch y los campos de consulta del editor. Explore devuelve datos, pero el Query Inspector del panel no recogía solicitud/respuesta; la corrección aún requiere confirmación de estabilidad y validación visual después del rollout. También quedan pendientes la evidencia log→traza en Jaeger y la destrucción de recursos al terminar.
 
 ## Enfoque técnico
 
@@ -56,7 +56,8 @@ flowchart LR
 |---|---|---|---|---|---|
 | Implementada sin validar | 1 | [Instrumentación OTel](01-instrumentacion-otel.md) | RF-001–RF-008, RNF-001–RNF-004 | APIs, Compose y Collector local. | Trazas, métricas y logs locales correlacionados. |
 | Implementada sin validar | 2 | [Despliegue ECS](02-despliegue-ecs.md) | RF-009–RF-017, RNF-005–RNF-007 | Collector, APIs, Jaeger, Prometheus, CloudWatch y Terraform. | Laboratorio ECS operativo para consultas y smoke tests. |
-| Pendiente | 3 | [Visualización y correlación en ECS](03-visualizacion-grafana.md) | RF-018–RF-022, RNF-008–RNF-009; revalidación de RF-002, RF-011–RF-013 y RF-019. | Grafana, CloudWatch, Jaeger, Prometheus, ECS y Terraform. | Dashboard con seis paneles y recorrido reproducible log→traza. |
+| Rollout en curso; UI pendiente | 3 | [Visualización y correlación en ECS](03-visualizacion-grafana.md) | RF-018–RF-022, RNF-008–RNF-009; revalidación de RF-002, RF-011–RF-013 y RF-019. | Grafana, CloudWatch, Jaeger, Prometheus, ECS y Terraform. | Dashboard con seis paneles y recorrido reproducible log→traza. |
+| Implementada; mediciones pendientes | 4 | [Análisis de overhead](04-analisis-overhead.md) | RF-023, RNF-010. | Toggle `OTEL_ENABLED`, runner de Compose/k6 y recolección de Docker stats listos; falta ejecutar en un host con k6. | Comparación reproducible de p99, CPU y memoria con OTel activado/desactivado; sin resultados hasta ejecutar las corridas. |
 
 ## Cobertura de requisitos
 
@@ -79,19 +80,21 @@ flowchart LR
 | Implementado; flujo de pedido por confirmar | RF-015 | Fase 2 y 3 |
 | Implementado; seguridad de Grafana pendiente | RF-016 | Fase 2 y 3 |
 | Despliegue activo; limpieza pendiente | RF-017 | Fase 2 y 3 |
-| Pendiente | RF-018 | Fase 3 |
+| Implementado; verificación funcional pendiente | RF-018 | Fase 3 |
 | Implementado; verificación end-to-end pendiente | RF-019 | Fase 3 |
-| Pendiente | RF-020 | Fase 3 |
-| Pendiente | RF-021 | Fase 3 |
-| Pendiente | RF-022 | Fase 3 |
-| Implementado; permisos Grafana pendientes | RNF-008 | Fase 3 |
-| Pendiente | RNF-009 | Fase 3 |
+| Implementado; verificación funcional pendiente | RF-020 | Fase 3 |
+| Implementado; correlación log→traza pendiente | RF-021 | Fase 3 |
+| Implementado; verificación de red pendiente | RF-022 | Fase 3 |
+| Implementado; mediciones pendientes | RF-023 | Fase 4 |
+| Implementado; verificar permisos efectivos | RNF-008 | Fase 3 |
+| Implementado; arranque/reaprovisionamiento pendientes de verificar | RNF-009 | Fase 3 |
 | Implementado, funcional pendiente | RNF-001–RNF-004 | Fase 1 |
 | Implementado, AWS por confirmar | RNF-005–RNF-007 | Fase 2 |
+| Implementado; corridas/evidencia pendientes | RNF-010 | Fase 4 |
 
 ## Dependencias y orden de ejecución
 
-La fase 1 depende del código base de ID-001. La fase 2 depende de la instrumentación, las imágenes publicadas y permisos de creación AWS. La fase 3 depende del ECS activo, de confirmar nombres/labels reales en Prometheus y de disponer de permisos para extender el repositorio IaC, ECR, IAM, Secrets Manager, CloudWatch y ECS. Las tareas de imagen/provisioning Grafana y consultas del dashboard pueden avanzar en paralelo; el apply y las pruebas funcionales requieren que ambas estén listas.
+La fase 1 depende del código base de ID-001. La fase 2 depende de la instrumentación, las imágenes publicadas y permisos de creación AWS. La fase 3 depende del ECS activo, de confirmar nombres/labels reales en Prometheus y de disponer de permisos para extender el repositorio IaC, ECR, IAM, Secrets Manager, CloudWatch y ECS. Las tareas de imagen/provisioning Grafana y consultas del dashboard pueden avanzar en paralelo; el apply y las pruebas funcionales requieren que ambas estén listas. La fase 4 depende de contar con Docker Compose/k6 local, datos semilla y una opción `OTEL_ENABLED` que permita alternar providers e instrumentación sin variar la aplicación funcional; la especificación está en [`04-analisis-overhead.md`](04-analisis-overhead.md).
 
 ## Prerequisitos operativos
 
@@ -101,8 +104,8 @@ La fase 1 depende del código base de ID-001. La fase 2 depende de la instrument
 | Confirmado | Cuenta AWS, región `us-east-1`, ECS/ECR y entorno de fase 2. | Acceso/infraestructura | Bloquea el smoke test AWS. |
 | Confirmado | La infraestructura Terraform reside en `infra/otel-ecs-lab` y los módulos en `infra/tf_modules`, dentro de este repositorio. | Repositorio | Ninguno. |
 | Confirmado | CIDR de prueba `181.61.246.55/32`. | Configuración | Bloquea el acceso web a Grafana. |
-| Pendiente de ejecutar | Aprovisionar el secreto de administrador Grafana y permiso de lectura CloudWatch acotado. | Seguridad | Bloquea consulta de Grafana a CloudWatch. |
-| Pendiente de ejecutar | Publicar el tag inmutable de Grafana y actualizar la task definition. | ECR/ECS | Bloquea la fase 3. |
+| Implementado en IaC | Aprovisionar el secreto de administrador Grafana y permiso de lectura CloudWatch acotado. | Seguridad | Requiere apply para estar activo. |
+| En rollout | Publicar `phase3-test-4` y desplegar la revisión 8 de la task definition. | ECR/ECS | Confirmar rollout estable y validar el panel CPU en la UI. |
 | No requerido | GCP, X-Ray, Tempo, servicio Grafana gestionado. | Alcance | Ninguno; están fuera de alcance. |
 
 ## Riesgos y limitaciones
@@ -121,15 +124,17 @@ La fase 1 depende del código base de ID-001. La fase 2 depende de la instrument
 
 | Estado | Nivel | Qué cubre | Ejecución |
 |---|---|---|---|
-| Parcialmente aprobada | Automatizada / estática | Python/Compose fase 1, scripts y formato Terraform ya existente. | Repetir validaciones después de cambios de fase 3: compileall, Compose, JSON/YAML, `terraform fmt`, `init`, `validate`, `plan`. |
-| Pendiente | Automatizada / imagen | Construcción y provisioning de Grafana. | Build de Docker, validación de provisioning y carga de las tres fuentes. |
-| Parcialmente confirmada | Funcional / operativa | Rollout ECS rev4 activo; falta consultar señales integrales. | Esperar estabilidad, tráfico HTTP, revisar dashboard, Explore, Jaeger, Prometheus y CloudWatch. |
-| Pendiente | Seguridad | CIDR, secreto y alcance IAM. | Revisar plan Terraform y probar acceso autorizado; no ampliar la entrada pública. |
+| Aprobada en entorno local | Automatizada / estática | JSON del dashboard, Python, Compose, formato Terraform, init, validate y plan. | Las consultas CloudWatch/Prometheus requieren validación después del despliegue. |
+| Aprobada en entorno local | Automatizada / imagen | Build de Grafana y carga de provisioning. | Docker build correcto; API local confirmó seis paneles y datasources Prometheus, Jaeger y CloudWatch. |
+| Parcialmente confirmada | Funcional / operativa | Tag `phase3-test-4` publicado y revisión 8 en rollout; Explore consulta datos pero el panel CPU aún no se ha validado en UI. | Confirmar estabilidad; revisar Query Inspector y renderizado del dashboard, y completar correlación log→traza. |
+| Plan revisado; runtime pendiente | Seguridad | CIDR, secreto y alcance IAM. | El plan conserva el CIDR `181.61.246.55/32`; verificar acceso y permisos efectivos tras el apply. |
 | Pendiente | Reversión y limpieza | Recursos del laboratorio. | Guardar evidencia; `terraform destroy`; confirmar servicio sin tareas. |
 
 ## Criterios de cierre del plan
 
 - [ ] RF-001 a RF-022 y RNF-001 a RNF-009 validados o con limitación explícita aceptada.
+- [x] Toggle OTel, escenario k6 y runner local implementados para RF-023/RNF-010.
+- [ ] Ejecutar al menos tres rondas válidas por variante y adjuntar las evidencias; hasta entonces la fase 4 queda pendiente de medición.
 - [ ] Dashboard Grafana con exactamente seis paneles y series no vacías para los casos generados.
 - [ ] Misma traza pedidos→catálogo→PostgreSQL visible en Jaeger y localizable desde `trace_id` en Grafana Explore.
 - [ ] Log de aplicación consultable en Grafana vía CloudWatch Logs.
@@ -143,5 +148,6 @@ La fase 1 depende del código base de ID-001. La fase 2 depende de la instrument
 - [`01-instrumentacion-otel.md`](01-instrumentacion-otel.md) — instrumentación y validación local.
 - [`02-despliegue-ecs.md`](02-despliegue-ecs.md) — laboratorio ECS.
 - [`03-visualizacion-grafana.md`](03-visualizacion-grafana.md) — fase de dashboard, correlación y evidencias.
+- [`04-analisis-overhead.md`](04-analisis-overhead.md) — protocolo y evidencias de la medición de overhead.
 - [Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/) y [datasource Jaeger](https://grafana.com/docs/grafana/latest/datasources/jaeger/query-editor/).
 - [Grafana CloudWatch query editor](https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/query-editor/) y [AWS ECS service utilization](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service_utilization.html).

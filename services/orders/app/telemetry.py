@@ -34,10 +34,15 @@ _metrics_server: tuple[HTTPServer, Thread] | None = None
 _httpx_instrumented = False
 
 
-def configure_telemetry(service_name: str) -> None:
+def configure_telemetry(service_name: str) -> bool:
     global _tracer_provider, _meter_provider, _logger_provider
     if _tracer_provider is not None:
-        return
+        return True
+    enabled = os.getenv("OTEL_ENABLED", "true").strip().lower()
+    if enabled not in {"true", "false"}:
+        raise RuntimeError("OTEL_ENABLED debe ser true o false.")
+    if enabled == "false":
+        return False
 
     environment = os.getenv("DEPLOYMENT_ENVIRONMENT", "local")
     resource = Resource.create(
@@ -62,6 +67,7 @@ def configure_telemetry(service_name: str) -> None:
         resource=resource, metric_readers=[PrometheusMetricReader()]
     )
     metrics.set_meter_provider(_meter_provider)
+    return True
 
 
 def instrument_httpx() -> None:
@@ -73,15 +79,13 @@ def instrument_httpx() -> None:
 
 def attach_otel_logging(logger: logging.Logger) -> None:
     if _logger_provider is None:
-        raise RuntimeError("La telemetría debe configurarse antes de los logs OTLP.")
+        return
     logger.addHandler(LoggingHandler(level=logging.INFO, logger_provider=_logger_provider))
 
 
 def instrument_database(engine: AsyncEngine) -> None:
     if _tracer_provider is None or _meter_provider is None:
-        raise RuntimeError(
-            "La telemetría debe configurarse antes de instrumentar PostgreSQL."
-        )
+        return
     SQLAlchemyInstrumentor().instrument(
         engine=engine.sync_engine,
         tracer_provider=_tracer_provider,

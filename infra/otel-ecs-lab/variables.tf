@@ -17,7 +17,7 @@ variable "allowed_cidr" {
 variable "image_tag" {
   description = "Etiqueta idéntica de las imágenes publicadas en ECR."
   type        = string
-  default     = "phase2-test-4"
+  default     = "phase3-test-4"
 }
 
 variable "desired_count" {

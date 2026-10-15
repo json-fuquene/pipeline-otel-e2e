@@ -45,8 +45,6 @@ exporters:
   prometheus:
     endpoint: 0.0.0.0:8889
     namespace: pipeline
-    resource_to_telemetry_conversion:
-      enabled: true
   awscloudwatchlogs:
     log_group_name: /pipeline-otel/ecs-test
     log_stream_name: otel
