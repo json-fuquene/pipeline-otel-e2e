@@ -1,0 +1,32 @@
+extensions:
+  jaeger_storage:
+    backends:
+      in_memory:
+        memory:
+          max_traces: 10000
+  jaeger_query:
+    storage:
+      traces: in_memory
+    grpc:
+      endpoint: 127.0.0.1:16685
+    http:
+      endpoint: 0.0.0.0:16686
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:14317
+      http:
+        endpoint: 127.0.0.1:14318
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: in_memory
+
+service:
+  extensions: [jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [jaeger_storage_exporter]

@@ -1,24 +1,26 @@
-# ID-002 — Plan general: instrumentación OpenTelemetry local
+# ID-002 — Plan general: observabilidad local y despliegue ECS
 
 ## Identificación
 
 | Campo | Detalle |
 |---|---|
 | ID | ID-002 |
-| Título | Instrumentación OpenTelemetry de catálogo y pedidos. |
+| Título | Observabilidad OpenTelemetry local y despliegue de laboratorio en ECS. |
 | Sprint / iteración | No documentado. |
 | Prioridad | Alta |
-| Estado global | Implementada sin validar |
-| Sistemas y repositorios afectados | `services/catalog`, `services/orders`, `compose.yaml`, `docker/otel-collector`, `README.md`. |
+| Estado global | Fase 1 implementada sin validar; fase 2 implementada sin validar en AWS |
+| Sistemas y repositorios afectados | APIs, Docker Compose, Collector, Jaeger, Prometheus, CloudWatch e IaC ECS. |
 | Iniciativas relacionadas | ID-001 — instrumenta los servicios definidos por ese plan. |
 
 ## Resumen de estado
 
-La instrumentación, los endpoints de métricas y el Collector local quedaron incorporados. La validación automatizada y operativa está pendiente; no se declara la fase completada hasta que se compruebe Compose y la correlación de punta a punta.
+La fase 1 conserva su implementación local. La fase 2 agrega exportación de logs OTLP, backends de consulta y manifiestos ECS Fargate. La especificación y el código están preparados; Terraform no se aplicó ni se validó el pipeline en AWS.
 
 ## Enfoque técnico
 
 Cada servicio configura su `TracerProvider` con `service.name` propio y exportador OTLP/gRPC. FastAPI, HTTPX en pedidos y SQLAlchemy se instrumentan con instrumentors OTel; las rutas de salud se excluyen. Los endpoints Prometheus usan `PrometheusMetricReader` en el puerto interno 9464. Los logs JSON incorporan el contexto span activo y conservan `request_id`.
+
+En ECS la tarea Fargate agrupa APIs y backends con red `awsvpc`: PostgreSQL, migraciones, Collector, Jaeger y Prometheus. El Collector procesa señales con `memory_limiter`, `resource` y `batch`, y exporta trazas a Jaeger, métricas a Prometheus y logs a CloudWatch.
 
 ```mermaid
 flowchart LR
@@ -28,6 +30,9 @@ flowchart LR
   K --> DB
   O -->|OTLP gRPC| OT[OTel Collector]
   K -->|OTLP gRPC| OT
+  OT -->|trazas| J[Jaeger]
+  OT -->|logs| CW[CloudWatch Logs]
+  OT -->|métricas| P[Prometheus]
   C -->|Prometheus :9465| OM[Métricas pedidos]
   C -->|Prometheus :9464| CM[Métricas catálogo]
 ```
@@ -38,6 +43,8 @@ flowchart LR
 |---|---|---|---|
 | Endpoint Prometheus | `127.0.0.1:9464/metrics`, `127.0.0.1:9465/metrics` | Métricas HTTP de catálogo y pedidos. | Aditivo; API funcional no cambia. |
 | Exportación OTLP | Red Compose, `otel-collector:4317` | Las APIs exportan trazas gRPC. | Interno al Compose. |
+| ECS | `/home/ajfuq/projects/infraestructura/infra/otel-ecs-lab` | Crea red, ECR, secretos, permisos y tarea Fargate. | Requiere cuenta AWS. |
+| Logs OTLP | Red interna ECS | Envía logs JSON de solicitud a CloudWatch Logs. | Aditivo; stdout se conserva. |
 | Logs JSON | Middleware de cada servicio | Se agregan `trace_id` y `span_id`. | Aditivo; se conserva `request_id`. |
 | Dependencias Python | `services/*/requirements.txt` | SDK, exportadores e instrumentors fijados. | Solo afecta imágenes de servicios. |
 
@@ -46,6 +53,7 @@ flowchart LR
 | Estado | # | Documento | Requisitos que cubre | Sistemas | Resultado esperado |
 |---|---|---|---|---|---|
 | Implementada sin validar | 1 | [Instrumentación OTel](01-instrumentacion-otel.md) | RF-001–RF-008, RNF-001–RNF-004 | APIs, Compose, Collector y README. | Trazas, métricas y logs correlacionados en entorno local. |
+| Implementada sin validar en AWS | 2 | [Despliegue ECS](02-despliegue-ecs.md) | RF-009–RF-017, RNF-005–RNF-007 | Collector, APIs, imágenes, Jaeger, Prometheus, CloudWatch y Terraform. | Laboratorio Fargate listo para smoke test. |
 
 ## Cobertura de requisitos
 
@@ -63,10 +71,12 @@ flowchart LR
 | Implementado sin validar | RNF-002 | Fase 1 |
 | Implementado sin validar | RNF-003 | Fase 1 |
 | Implementado sin validar | RNF-004 | Fase 1 |
+| Implementado sin validar | RF-009–RF-017 | Fase 2 |
+| Implementado sin validar | RNF-005–RNF-007 | Fase 2 |
 
 ## Dependencias y orden de ejecución
 
-La fase depende del código base de ID-001. La configuración y las dependencias OTel permiten instrumentar los engines al crearse; Compose inicia el Collector en la misma red. El Collector no bloquea el arranque de las APIs para que una indisponibilidad temporal de exportación no afecte solicitudes funcionales.
+La fase 1 depende del código base de ID-001. La fase 2 depende de la fase 1, las imágenes publicadas en ECR, permisos de creación AWS y un CIDR autorizado. Las migraciones inician tras PostgreSQL saludable y las APIs esperan sus migraciones.
 
 ## Prerequisitos operativos
 
@@ -76,6 +86,8 @@ La fase depende del código base de ID-001. La configuración y las dependencias
 | Pendiente | Acceso al registro de imágenes para descargar Collector y dependencias Python. | Acceso | Bloquea build e integración. |
 | Pendiente | Puertos locales 9464 y 9465 disponibles. | Configuración | Bloquea exposición de métricas. |
 | No requerido | Cuenta cloud o backend externo de trazas. | Acceso | Ninguno; el Collector usa `debug`. |
+| Pendiente | Cuenta AWS con permisos para ECS, ECR, VPC, IAM, Secrets Manager y CloudWatch. | Acceso | Bloquea smoke test cloud. |
+| Pendiente | Escritura habilitada en `/home/ajfuq/projects/infraestructura`. | Filesystem | El Terraform está provisionalmente dentro del repositorio de aplicación. |
 
 ## Riesgos y limitaciones
 
@@ -84,6 +96,8 @@ La fase depende del código base de ID-001. La configuración y las dependencias
 | Prelanzamiento de instrumentors | Paquetes Python de instrumentación usan versiones beta. | Medio | Versiones fijadas y build/validación de imagen pendientes. | Para validar |
 | Sin backend persistente de trazas | `debug` escribe trazas recibidas en logs del Collector. | Bajo | Adecuado para demostración local; no ofrece búsqueda histórica. | No |
 | Métricas de DB fuera del alcance | SQLAlchemy se instrumenta para spans; las métricas cubren HTTP. | Bajo | Extender requisitos en otra iniciativa si se necesitan métricas DB. | No |
+| Datos efímeros ECS | PostgreSQL y Jaeger pierden datos al parar la tarea. | Medio | Usar datos sintéticos y destruir el entorno al terminar. | No |
+| Directorio IaC externo no escribible | La ruta solicitada queda fuera de las rutas autorizadas de esta sesión. | Medio | Copiar los manifiestos cuando se habilite la escritura allí. | Para entregar ruta final |
 
 ## Estrategia de validación
 
@@ -96,6 +110,7 @@ La fase depende del código base de ID-001. La configuración y las dependencias
 ## Criterios de cierre del plan
 
 - [ ] RF-001 a RF-008 y RNF-001 a RNF-004 validados.
+- [ ] RF-009 a RF-017 y RNF-005 a RNF-007 validados en ECS.
 - [ ] Compose levanta APIs, PostgreSQL y Collector.
 - [ ] Métricas consultables y spans correlacionados visibles en logs del Collector.
 - [ ] No se exportan valores sensibles ni se cambian contratos funcionales.
@@ -105,4 +120,5 @@ La fase depende del código base de ID-001. La configuración y las dependencias
 
 - [`00-especificacion.md`](00-especificacion.md) — requisitos, casos y decisiones.
 - [`01-instrumentacion-otel.md`](01-instrumentacion-otel.md) — instrucciones de implementación y validación.
+- [`02-despliegue-ecs.md`](02-despliegue-ecs.md) — despliegue ECS y ejecución del smoke test.
 - [OpenTelemetry Python exporters](https://opentelemetry.io/docs/languages/python/exporters/) y [Collector troubleshooting](https://opentelemetry.io/docs/collector/troubleshooting/).

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from http.server import HTTPServer
 from threading import Thread
@@ -8,11 +9,13 @@ from typing import Any
 os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
 
 from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.propagate import set_global_textmap
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -24,23 +27,29 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 _tracer_provider: TracerProvider | None = None
 _meter_provider: MeterProvider | None = None
+_logger_provider: LoggerProvider | None = None
 _metrics_server: tuple[HTTPServer, Thread] | None = None
-_httpx_instrumented = False
-
-
 def configure_telemetry(service_name: str) -> None:
-    global _tracer_provider, _meter_provider
+    global _tracer_provider, _meter_provider, _logger_provider
     if _tracer_provider is not None:
         return
 
+    environment = os.getenv("DEPLOYMENT_ENVIRONMENT", "local")
     resource = Resource.create(
-        {SERVICE_NAME: service_name, "deployment.environment.name": "local"}
+        {SERVICE_NAME: service_name, "deployment.environment.name": environment}
     )
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
     _tracer_provider = TracerProvider(resource=resource)
     _tracer_provider.add_span_processor(
         BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True))
     )
+    _logger_provider = LoggerProvider(resource=resource)
+    _logger_provider.add_log_record_processor(
+        BatchLogRecordProcessor(OTLPLogExporter(endpoint=endpoint, insecure=True))
+    )
+    from opentelemetry._logs import set_logger_provider
+
+    set_logger_provider(_logger_provider)
     trace.set_tracer_provider(_tracer_provider)
     set_global_textmap(TraceContextTextMapPropagator())
 
@@ -50,11 +59,10 @@ def configure_telemetry(service_name: str) -> None:
     metrics.set_meter_provider(_meter_provider)
 
 
-def instrument_httpx() -> None:
-    global _httpx_instrumented
-    if not _httpx_instrumented:
-        HTTPXClientInstrumentor().instrument()
-        _httpx_instrumented = True
+def attach_otel_logging(logger: logging.Logger) -> None:
+    if _logger_provider is None:
+        raise RuntimeError("La telemetría debe configurarse antes de los logs OTLP.")
+    logger.addHandler(LoggingHandler(level=logging.INFO, logger_provider=_logger_provider))
 
 
 def instrument_database(engine: AsyncEngine) -> None:
@@ -104,6 +112,8 @@ def stop_telemetry() -> None:
         _metrics_server = None
     if _meter_provider is not None:
         _meter_provider.shutdown()
+    if _logger_provider is not None:
+        _logger_provider.shutdown()
     if _tracer_provider is not None:
         _tracer_provider.shutdown()
 

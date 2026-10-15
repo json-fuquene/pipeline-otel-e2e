@@ -27,6 +27,7 @@ from services.catalog.app.errors import (
 from services.catalog.app.models import Product
 from services.catalog.app.observability import configure_logging, request_logging_middleware
 from services.catalog.app.telemetry import (
+    attach_otel_logging,
     configure_telemetry,
     get_tracer,
     sanitize_server_span,
@@ -37,6 +38,7 @@ from services.catalog.app.schemas import CatalogReadiness, ProductCreate, Produc
 
 logger = configure_logging()
 configure_telemetry("catalog")
+attach_otel_logging(logger)
 tracer = get_tracer()
 
 

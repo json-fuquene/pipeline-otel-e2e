@@ -30,6 +30,7 @@ from services.orders.app.errors import (
 from services.orders.app.models import Order
 from services.orders.app.observability import configure_logging, request_logging_middleware
 from services.orders.app.telemetry import (
+    attach_otel_logging,
     configure_telemetry,
     get_tracer,
     instrument_httpx,
@@ -48,6 +49,7 @@ from services.orders.app.schemas import (
 logger = configure_logging()
 configure_telemetry("orders")
 instrument_httpx()
+attach_otel_logging(logger)
 tracer = get_tracer()
 
 

@@ -100,3 +100,7 @@ Para comenzar de nuevo se puede conservar `.env` y arrancar con `docker compose 
 ## Implementación y validación
 
 La arquitectura, los contratos, criterios de aceptación y fases de servicios están descritos en [`specs/ID-001-microservicios-locales/`](specs/ID-001-microservicios-locales/). La instrumentación y sus criterios se describen en [`specs/ID-002-observabilidad-otel/`](specs/ID-002-observabilidad-otel/).
+
+## Prueba de observabilidad en ECS
+
+La fase 2 define un laboratorio efímero en AWS ECS Fargate con Collector, Jaeger, Prometheus y CloudWatch Logs. Los Terraform están en [`/home/ajfuq/projects/infraestructura/infra/otel-ecs-lab`](</home/ajfuq/projects/infraestructura/infra/otel-ecs-lab/README.md>); antes de desplegar, configura el CIDR permitido, publica las imágenes en ECR y sigue su guía. PostgreSQL y Jaeger usan almacenamiento efímero. No se aplica infraestructura automáticamente.
