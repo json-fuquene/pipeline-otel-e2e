@@ -1,0 +1,129 @@
+Image otelbench-86bc6015-catalog-migrate Building 
+ Image otelbench-86bc6015-orders-migrate Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.10kB done
+#1 DONE 0.0s
+
+#2 [orders-migrate internal] load build definition from Dockerfile
+#2 transferring dockerfile: 537B done
+#2 DONE 0.0s
+
+#3 [catalog-migrate internal] load build definition from Dockerfile
+#3 transferring dockerfile: 541B done
+#3 DONE 0.0s
+
+#4 [orders-migrate internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.2s
+
+#5 [orders-migrate internal] load .dockerignore
+#5 transferring context: 123B done
+#5 DONE 0.0s
+
+#6 [orders-migrate internal] load build context
+#6 transferring context: 1.27kB done
+#6 DONE 0.0s
+
+#7 [catalog-migrate internal] load build context
+#7 transferring context: 1.29kB done
+#7 DONE 0.0s
+
+#8 [orders-migrate 1/5] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#8 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 0.0s done
+#8 DONE 0.0s
+
+#9 [catalog-migrate 3/5] COPY services/catalog/requirements.txt /tmp/requirements.txt
+#9 CACHED
+
+#10 [catalog-migrate 4/5] RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt     && useradd --system --uid 10001 --create-home appuser
+#10 CACHED
+
+#11 [orders-migrate 2/5] WORKDIR /app
+#11 CACHED
+
+#12 [orders-migrate 4/5] RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt     && useradd --system --uid 10001 --create-home appuser
+#12 CACHED
+
+#13 [orders-migrate 3/5] COPY services/orders/requirements.txt /tmp/requirements.txt
+#13 CACHED
+
+#14 [catalog-migrate 5/5] COPY services/catalog /app/services/catalog
+#14 CACHED
+
+#15 [orders-migrate 5/5] COPY services/orders /app/services/orders
+#15 CACHED
+
+#16 [orders-migrate] exporting to image
+#16 exporting layers done
+#16 exporting manifest sha256:56d7db7177ffa54351ddf2b6e24e241c1b30129cd53ed1e7528e84051e757b61 0.0s done
+#16 exporting config sha256:e8949cee89bdcdf10983e6fc52327aa364c588a9202b92e7170b73f1d36f260f
+#16 exporting config sha256:e8949cee89bdcdf10983e6fc52327aa364c588a9202b92e7170b73f1d36f260f 0.0s done
+#16 exporting attestation manifest sha256:dcda0c4ae4ca58a2bb79bfcfb337db9640b20577fe474c56bf860ff2099cade1 0.0s done
+#16 exporting manifest list sha256:3464dcba2c5e9c007f885cbfca2592e7b2636d679a1e5e1b977bde495a1c5ae5
+#16 exporting manifest list sha256:3464dcba2c5e9c007f885cbfca2592e7b2636d679a1e5e1b977bde495a1c5ae5 0.0s done
+#16 naming to docker.io/library/otelbench-86bc6015-orders-migrate:latest done
+#16 unpacking to docker.io/library/otelbench-86bc6015-orders-migrate:latest 0.0s done
+#16 DONE 0.2s
+
+#17 [catalog-migrate] exporting to image
+#17 exporting layers done
+#17 exporting manifest sha256:ed06efb3d50193bc01ab9bce32a1716c5475a828b2fdb23ed34e3e150e7d2346 0.0s done
+#17 exporting config sha256:043a1078ec1899274a7d291065d96eabc15af742d568ef86eda2445d7e4c51a4 0.0s done
+#17 exporting attestation manifest sha256:a59a0d3f79b649bc6d45c853ffe96887f8f8f294f42aca96b468b6a4a6f06ef5 0.0s done
+#17 exporting manifest list sha256:113c2abd6aa0a10fb41eab5a928b8e4b189a6abb165e25c4820a9e08ab1d92db 0.0s done
+#17 naming to docker.io/library/otelbench-86bc6015-catalog-migrate:latest done
+#17 unpacking to docker.io/library/otelbench-86bc6015-catalog-migrate:latest 0.0s done
+#17 DONE 0.2s
+
+#18 [catalog-migrate] resolving provenance for metadata file
+#18 DONE 0.0s
+
+#19 [orders-migrate] resolving provenance for metadata file
+#19 DONE 0.0s
+ Image otelbench-86bc6015-orders-migrate Built 
+ Image otelbench-86bc6015-catalog-migrate Built 
+ Network otelbench-86bc6015_default Creating 
+ Volume otelbench-86bc6015_postgres_data Creating 
+ Volume otelbench-86bc6015_postgres_data Creating 
+ Network otelbench-86bc6015_default Creating 
+ Volume otelbench-86bc6015_postgres_data Created 
+ Volume otelbench-86bc6015_postgres_data Created 
+ Network otelbench-86bc6015_default Created 
+ Network otelbench-86bc6015_default Created 
+ Container otelbench-86bc6015-otel-collector-1 Creating 
+ Container otelbench-86bc6015-postgres-1 Creating 
+ Container otelbench-86bc6015-otel-collector-1 Created 
+ Container otelbench-86bc6015-postgres-1 Created 
+ Container otelbench-86bc6015-orders-migrate-1 Creating 
+ Container otelbench-86bc6015-catalog-migrate-1 Creating 
+ Container otelbench-86bc6015-catalog-migrate-1 Created 
+ Container otelbench-86bc6015-catalog-1 Creating 
+ Container otelbench-86bc6015-orders-migrate-1 Created 
+ Container otelbench-86bc6015-catalog-1 Created 
+ Container otelbench-86bc6015-orders-1 Creating 
+ Container otelbench-86bc6015-orders-1 Created 
+ Container otelbench-86bc6015-otel-collector-1 Starting 
+ Container otelbench-86bc6015-postgres-1 Starting 
+ Container otelbench-86bc6015-postgres-1 Started 
+ Container otelbench-86bc6015-postgres-1 Waiting 
+ Container otelbench-86bc6015-postgres-1 Waiting 
+ Container otelbench-86bc6015-otel-collector-1 Started 
+ Container otelbench-86bc6015-postgres-1 Healthy 
+ Container otelbench-86bc6015-orders-migrate-1 Starting 
+ Container otelbench-86bc6015-postgres-1 Healthy 
+ Container otelbench-86bc6015-catalog-migrate-1 Starting 
+ Container otelbench-86bc6015-orders-migrate-1 Started 
+ Container otelbench-86bc6015-catalog-migrate-1 Started 
+ Container otelbench-86bc6015-catalog-migrate-1 Waiting 
+ Container otelbench-86bc6015-postgres-1 Waiting 
+ Container otelbench-86bc6015-postgres-1 Healthy 
+ Container otelbench-86bc6015-catalog-migrate-1 Exited 
+ Container otelbench-86bc6015-catalog-1 Starting 
+ Container otelbench-86bc6015-catalog-1 Started 
+ Container otelbench-86bc6015-catalog-1 Waiting 
+ Container otelbench-86bc6015-postgres-1 Waiting 
+ Container otelbench-86bc6015-orders-migrate-1 Waiting 
+ Container otelbench-86bc6015-orders-migrate-1 Exited 
+ Container otelbench-86bc6015-postgres-1 Healthy 
+ Container otelbench-86bc6015-catalog-1 Healthy 
+ Container otelbench-86bc6015-orders-1 Starting 
+ Container otelbench-86bc6015-orders-1 Started

@@ -136,7 +136,25 @@ def api_seed(base_urls: dict[str, str], run_id: str) -> tuple[str, str]:
 
 
 def summary_metric(summary: dict[str, Any], name: str, field: str) -> float | int | None:
-    return summary.get("metrics", {}).get(name, {}).get("values", {}).get(field)
+    metric = summary.get("metrics", {}).get(name, {})
+    values = metric.get("values", metric)
+    return values.get(field)
+
+
+def check_totals(summary: dict[str, Any]) -> tuple[int, int]:
+    passes = 0
+    fails = 0
+
+    def collect(group: dict[str, Any]) -> None:
+        nonlocal passes, fails
+        for check in group.get("checks", {}).values():
+            passes += check.get("passes", 0)
+            fails += check.get("fails", 0)
+        for child in group.get("groups", {}).values():
+            collect(child)
+
+    collect(summary.get("root_group", {}))
+    return passes, fails
 
 
 def inspect_limits(project: str, env: dict[str, str]) -> dict[str, dict[str, int]]:
@@ -271,24 +289,28 @@ def capture_round(
                 raise
 
     summary = json.loads(k6_summary.read_text())
-    metrics = summary.get("metrics", {})
-    checks = metrics.get("checks", {}).get("values", {})
+    check_passes, check_failures = check_totals(summary)
     dropped = summary_metric(summary, "dropped_iterations", "count") or 0
-    failed_rate = summary_metric(summary, "http_req_failed", "rate") or 0
+    failed_rate = summary_metric(summary, "http_req_failed", "value")
+    failed_rate = failed_rate if failed_rate is not None else 1
+    catalog_p99 = summary_metric(summary, "catalog_duration", "p(99)")
+    orders_p99 = summary_metric(summary, "orders_duration", "p(99)")
+    http_requests = summary_metric(summary, "http_reqs", "count") or 0
     rounds = {
         "variant": variant,
         "round": round_number,
         "k6_exit_code": k6_exit_code,
-        "catalog_p99_ms": summary_metric(summary, "catalog_duration", "p(99)"),
-        "orders_p99_ms": summary_metric(summary, "orders_duration", "p(99)"),
+        "catalog_p99_ms": catalog_p99,
+        "orders_p99_ms": orders_p99,
         "catalog_cpu_avg_percent": None,
         "orders_cpu_avg_percent": None,
         "catalog_memory_avg_bytes": None,
         "orders_memory_avg_bytes": None,
         "dropped_iterations": dropped,
         "http_req_failed_rate": failed_rate,
-        "check_failures": checks.get("fails", 0),
-        "http_requests": summary_metric(summary, "http_reqs", "count") or 0,
+        "check_passes": check_passes,
+        "check_failures": check_failures,
+        "http_requests": http_requests,
     }
     measured_rows: dict[str, list[dict[str, str]]] = {service: [] for service in SERVICES}
     with stats_path.open(newline="") as stats_file:
@@ -307,11 +329,15 @@ def capture_round(
         )
     rounds["valid"] = bool(
         k6_exit_code == 0
+        and catalog_p99 is not None
+        and orders_p99 is not None
+        and http_requests > 0
+        and check_passes > 0
         and dropped == 0
         and failed_rate == 0
-        and checks.get("fails", 0) == 0
+        and check_failures == 0
     )
-    rounds["invalid_reason"] = "" if rounds["valid"] else "Revisar checks, errores, dropped iterations o salida de k6."
+    rounds["invalid_reason"] = "" if rounds["valid"] else "Faltan métricas/respuestas o hubo checks fallidos, errores HTTP, dropped iterations o error de k6."
     return rounds
 
 
@@ -348,6 +374,7 @@ def write_reports(
         "orders_memory_avg_bytes",
         "http_requests",
         "http_req_failed_rate",
+        "check_passes",
         "check_failures",
         "dropped_iterations",
         "valid",
@@ -399,14 +426,14 @@ def write_reports(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compara p99, CPU y memoria con y sin OpenTelemetry.")
-    parser.add_argument("--rounds", type=int, default=3, help="Rondas por variante (mínimo 3).")
-    parser.add_argument("--rate", type=int, default=10, help="Iteraciones por segundo del escenario k6.")
-    parser.add_argument("--warmup-seconds", type=int, default=30)
-    parser.add_argument("--duration-seconds", type=int, default=180)
+    parser.add_argument("--rounds", type=int, default=1, help="Rondas por variante (predeterminado: 1, modo indicativo).")
+    parser.add_argument("--rate", type=int, default=2, help="Iteraciones por segundo del escenario k6.")
+    parser.add_argument("--warmup-seconds", type=int, default=3)
+    parser.add_argument("--duration-seconds", type=int, default=15)
     parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
-    if args.rounds < 3 or args.rate < 1 or args.warmup_seconds < 1 or args.duration_seconds < 1:
-        parser.error("Usa al menos 3 rondas y valores positivos para tasa, calentamiento y duración.")
+    if args.rounds < 1 or args.rate < 1 or args.warmup_seconds < 1 or args.duration_seconds < 1:
+        parser.error("Usa al menos 1 ronda y valores positivos para tasa, calentamiento y duración.")
     return args
 
 
@@ -458,8 +485,11 @@ def main() -> int:
         "resource_note": "CPU y memoria corresponden a cada contenedor API y a la semántica reportada por docker stats en esta plataforma.",
     }
     rounds: list[dict[str, Any]] = []
-    # Alternating the order reduces systematic drift between variants.
-    variants = [variant for _ in range(args.rounds) for variant in VARIANTS]
+    variants = [
+        variant
+        for round_index in range(args.rounds)
+        for variant in (VARIANTS if round_index % 2 == 0 else tuple(reversed(VARIANTS)))
+    ]
     variant_round_numbers = {variant: 0 for variant in VARIANTS}
     project = f"otelbench-{run_id}"
     try:
@@ -476,36 +506,41 @@ def main() -> int:
             round_number = variant_round_numbers[variant]
             env = {**os.environ, "OTEL_ENABLED": "true" if variant == "otel" else "false"}
             (output_dir / f"{variant}-r{round_number}").mkdir(parents=True)
-            try:
-                (output_dir / f"{variant}-r{round_number}" / "compose-up.log").write_text(
-                    docker_compose(project, "up", "--detach", env=env) + "\n"
-                )
-                limits = inspect_limits(project, env)
-                environment.setdefault("container_limits", {})[
-                    f"{variant}-r{round_number}"
-                ] = limits
-                row = capture_round(
-                    project=project,
-                    variant=variant,
-                    round_number=round_number,
-                    env=env,
-                    args=args,
-                    output_dir=output_dir,
-                    base_urls=base_urls,
-                    run_id=run_id,
-                )
-                rounds.append(row)
-            finally:
-                docker_compose(
-                    project,
-                    "down",
-                    "--volumes",
-                    "--remove-orphans",
-                    env=env,
-                )
+            compose_args = (
+                ("up", "--detach")
+                if index == 1
+                else ("up", "--detach", "--force-recreate", "--no-deps", "catalog", "orders")
+            )
+            (output_dir / f"{variant}-r{round_number}" / "compose-up.log").write_text(
+                docker_compose(project, *compose_args, env=env) + "\n"
+            )
+            limits = inspect_limits(project, env)
+            environment.setdefault("container_limits", {})[
+                f"{variant}-r{round_number}"
+            ] = limits
+            row = capture_round(
+                project=project,
+                variant=variant,
+                round_number=round_number,
+                env=env,
+                args=args,
+                output_dir=output_dir,
+                base_urls=base_urls,
+                run_id=run_id,
+            )
+            rounds.append(row)
             print(f"Ronda {index}/{len(variants)}: {variant} r{round_number} — {row['valid']}")
     finally:
-        write_reports(output_dir, rounds, environment)
+        try:
+            docker_compose(
+                project,
+                "down",
+                "--volumes",
+                "--remove-orphans",
+                env={**os.environ, "OTEL_ENABLED": "true"},
+            )
+        finally:
+            write_reports(output_dir, rounds, environment)
     print(f"Evidencias: {output_dir}")
     return 0 if len([row for row in rounds if row.get("valid")]) == len(variants) else 1
 

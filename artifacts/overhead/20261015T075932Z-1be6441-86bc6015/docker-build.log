@@ -1,0 +1,83 @@
+Image otelbench-86bc6015-catalog Building 
+ Image otelbench-86bc6015-orders Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.08kB done
+#1 DONE 0.0s
+
+#2 [catalog internal] load build definition from Dockerfile
+#2 transferring dockerfile:
+#2 transferring dockerfile: 541B done
+#2 DONE 0.0s
+
+#3 [orders internal] load build definition from Dockerfile
+#3 transferring dockerfile: 537B done
+#3 DONE 0.0s
+
+#4 [catalog internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.8s
+
+#5 [orders internal] load .dockerignore
+#5 transferring context: 123B done
+#5 DONE 0.0s
+
+#6 [orders internal] load build context
+#6 transferring context: 56.75kB done
+#6 DONE 0.0s
+
+#7 [catalog internal] load build context
+#7 transferring context: 44.81kB done
+#7 DONE 0.0s
+
+#8 [orders 1/5] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#8 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 0.0s done
+#8 DONE 0.0s
+
+#9 [orders 3/5] COPY services/orders/requirements.txt /tmp/requirements.txt
+#9 CACHED
+
+#10 [catalog 3/5] COPY services/catalog/requirements.txt /tmp/requirements.txt
+#10 CACHED
+
+#11 [catalog 2/5] WORKDIR /app
+#11 CACHED
+
+#12 [orders 4/5] RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt     && useradd --system --uid 10001 --create-home appuser
+#12 CACHED
+
+#13 [catalog 4/5] RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt     && useradd --system --uid 10001 --create-home appuser
+#13 CACHED
+
+#14 [orders 5/5] COPY services/orders /app/services/orders
+#14 DONE 0.1s
+
+#15 [catalog 5/5] COPY services/catalog /app/services/catalog
+#15 DONE 0.1s
+
+#16 [orders] exporting to image
+#16 exporting layers 0.1s done
+#16 exporting manifest sha256:43d8c0b6a9050ece1c86909dfbe3566a921091cd784629a95aa06182b61cbd0f 0.0s done
+#16 exporting config sha256:06bbaa27a334c4580448666d96aa3b49a546418e0e21ad44b794700adacc53e6 0.1s done
+#16 exporting attestation manifest sha256:bdc6de7689dfd1c8096db61d51b83c9aa5a765ececc43f71cb35b4cbc8014ef8 0.0s done
+#16 exporting manifest list sha256:e64dd1a9f957b78077e545770a8874d0dbf61fc183489c10464a4c4b04e1c88e 0.0s done
+#16 naming to docker.io/library/otelbench-86bc6015-orders:latest done
+#16 unpacking to docker.io/library/otelbench-86bc6015-orders:latest
+#16 unpacking to docker.io/library/otelbench-86bc6015-orders:latest 0.0s done
+#16 DONE 0.4s
+
+#17 [catalog] exporting to image
+#17 exporting layers 0.1s done
+#17 exporting manifest sha256:6128bd8d28dbeb02ded23b042d856b72fd6bf3ad66ef929f5c94b9ace695243b 0.0s done
+#17 exporting config sha256:e71bc250d8ddf07211d13296d2b751cd3267029a77495f52f4831138631afb74 0.0s done
+#17 exporting attestation manifest sha256:96244f519712609eec23f9494ac016d345170af3757acecff4eec4191e468a89 0.0s done
+#17 exporting manifest list sha256:d8335886dba42bc641aa1b98346575a95666d1014964cbad6f7e433a1787e53f 0.0s done
+#17 naming to docker.io/library/otelbench-86bc6015-catalog:latest done
+#17 unpacking to docker.io/library/otelbench-86bc6015-catalog:latest 0.0s done
+#17 DONE 0.4s
+
+#18 [catalog] resolving provenance for metadata file
+#18 DONE 0.0s
+
+#19 [orders] resolving provenance for metadata file
+#19 DONE 0.0s
+ Image otelbench-86bc6015-catalog Built 
+ Image otelbench-86bc6015-orders Built

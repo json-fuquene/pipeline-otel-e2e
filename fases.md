@@ -32,9 +32,10 @@
 ## Fase 4 — Análisis de Overhead
 
 - Implementación local lista: ambas APIs permiten alternar OTel con `OTEL_ENABLED` (por defecto `true`); el runner y el escenario k6 están en `scripts/benchmark/`.
+- Ejecución rápida predeterminada: una corrida por variante, tasa de 2 iteraciones/s, 3 s de calentamiento y 15 s de medición (36 s de carga total, además del build y el arranque). Es una comprobación indicativa y no una comparación estadísticamente robusta ni suficiente para cerrar RF-023/RNF-010.
 - Comparar ambas APIs en local bajo el mismo dataset, recursos y carga, con OTel activado y desactivado por una opción de configuración explícita.
 - Usar k6 con una carga de llegada constante y endpoints de lectura de catálogo y pedidos; no crear datos durante las ventanas medidas.
 - Medir p99 de latencia HTTP, CPU de los contenedores de aplicación y memoria de los contenedores. Calcular diferencia absoluta y relativa contra la ejecución sin OTel.
-- Repetir ejecuciones, guardar salidas crudas y metadatos del entorno, y presentar una tabla comparativa. No declarar resultados ni conclusiones hasta que los benchmarks se ejecuten.
-- Estado: mediciones pendientes. Para ejecutarlas, instala Docker Compose y k6, prepara `.env` mediante `python3 scripts/init-local-env.py`, libera los puertos 8001/8002 y ejecuta `scripts/benchmark/run-overhead.sh`. La configuración predeterminada realiza 6 corridas medidas de 180 s más 30 s de calentamiento por corrida (aprox. 21 min, además de la construcción de imágenes); los artefactos quedan en `artifacts/overhead/`.
+- Para una comparación más robusta, ejecutar al menos tres rondas por variante con los mismos parámetros y alternancia; conservar resultados crudos y metadatos, y reportar la dispersión. No declarar resultados ni conclusiones hasta ejecutar el benchmark.
+- Estado: mediciones pendientes. Instala Docker Compose y k6, prepara `.env` mediante `python3 scripts/init-local-env.py`, libera los puertos 8001/8002 y ejecuta `scripts/benchmark/run-overhead.sh`. El runner genera archivos de datos en `artifacts/overhead/`; las capturas de imagen las toma el usuario y no forman parte de la ejecución.
 - Especificación y procedimiento: [`04-analisis-overhead.md`](specs/ID-002-observabilidad-otel/04-analisis-overhead.md).

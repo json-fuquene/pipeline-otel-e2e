@@ -1,0 +1,3 @@
+variant,round,catalog_p99_ms,orders_p99_ms,catalog_cpu_avg_percent,orders_cpu_avg_percent,catalog_memory_avg_bytes,orders_memory_avg_bytes,http_requests,http_req_failed_rate,check_passes,check_failures,dropped_iterations,valid,invalid_reason
+otel,1,26.890045099999977,5.546234299999999,7.797499999999999,7.445,77017906.75,80410050,74,0,74,0,0,True,
+baseline,1,3.2944993,4.060905999999999,0.8374999999999999,6.4174999999999995,77293158,80826859.25,74,0,74,0,0,True,

@@ -1,0 +1,10 @@
+Container otelbench-86bc6015-catalog-1 Recreate 
+ Container otelbench-86bc6015-catalog-1 Recreated 
+ Container otelbench-86bc6015-orders-1 Recreate 
+ Container otelbench-86bc6015-orders-1 Recreated 
+ Container otelbench-86bc6015-catalog-1 Starting 
+ Container otelbench-86bc6015-catalog-1 Started 
+ Container otelbench-86bc6015-catalog-1 Waiting 
+ Container otelbench-86bc6015-catalog-1 Healthy 
+ Container otelbench-86bc6015-orders-1 Starting 
+ Container otelbench-86bc6015-orders-1 Started

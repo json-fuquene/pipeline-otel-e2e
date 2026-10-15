@@ -1,0 +1,49 @@
+{
+  "run_id": "86bc6015",
+  "started_at_utc": "2026-10-15T07:59:32.214462+00:00",
+  "git_revision": "1be6441",
+  "git_worktree_dirty": true,
+  "host_platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "host_cpu_count": 12,
+  "host_memory_bytes": 16685760512,
+  "python_version": "3.14.7 (main, Aug 14 2026, 15:35:28) [Clang 22.1.3 ]",
+  "docker_compose_version": "Docker Compose version v5.4.0",
+  "docker_daemon_platform": "linux/x86_64",
+  "k6_version": "k6 v2.3.0 (commit/e088784614, go1.26.8, linux/amd64)",
+  "load": {
+    "rate_iterations_per_second": 2,
+    "preallocated_vus": 10,
+    "max_vus": 40,
+    "warmup_seconds": 3,
+    "duration_seconds": 15,
+    "rounds_per_variant": 1
+  },
+  "measured_containers": [
+    "catalog",
+    "orders"
+  ],
+  "resource_note": "CPU y memoria corresponden a cada contenedor API y a la semántica reportada por docker stats en esta plataforma.",
+  "container_limits": {
+    "otel-r1": {
+      "catalog": {
+        "nano_cpus": 0,
+        "memory_bytes": 0
+      },
+      "orders": {
+        "nano_cpus": 0,
+        "memory_bytes": 0
+      }
+    },
+    "baseline-r1": {
+      "catalog": {
+        "nano_cpus": 0,
+        "memory_bytes": 0
+      },
+      "orders": {
+        "nano_cpus": 0,
+        "memory_bytes": 0
+      }
+    }
+  },
+  "report_recalculated_from_raw_k6_json": true
+}

@@ -26,7 +26,7 @@ Los servicios no ofrecían trazas distribuidas, métricas consultables ni IDs de
 | Implementada sin validar | Fase 1 — Instrumentación OpenTelemetry | SDK e instrumentors configurados, spans de negocio, métricas HTTP, campos de correlación, Collector y documentación local. | La validación operativa queda pendiente por falta de acceso a Docker y PyPI. |
 | Implementada; runtime operativo | Fase 2 — Despliegue ECS | OTLP HTTP/gRPC, processors, exporters Jaeger/Prometheus/CloudWatch y red/tarea Fargate. | Despliegue anterior estable; limpieza queda pendiente. |
 | Rollout en curso; UI pendiente | Fase 3 — Visualización y correlación en ECS | Grafana efímero, fuentes Prometheus/Jaeger/CloudWatch y dashboard de seis paneles. | Tag `phase3-test-4` y revisión 8 aplicados; confirmar estabilidad, consulta/render de CPU y log→traza. |
-| Implementada; sin mediciones | Fase 4 — Análisis de overhead | Toggle `OTEL_ENABLED`, escenario k6 y runner local para comparar p99, CPU y memoria. | No hay benchmark ejecutado ni resultados medidos; correr el protocolo y guardar las evidencias según `04-analisis-overhead.md`. |
+| Implementada; sin mediciones | Fase 4 — Análisis de overhead | Toggle `OTEL_ENABLED`, escenario k6 y runner local con modo rápido indicativo por defecto y perfil robusto opcional. | No hay benchmark ejecutado ni resultados medidos. Correr al menos el modo rápido para revisar el flujo; para aceptar formalmente RF-023/RNF-010 se requieren tres rondas válidas por variante. |
 
 ## Cumplimiento de requisitos
 
@@ -47,7 +47,7 @@ Los servicios no ofrecían trazas distribuidas, métricas consultables ni IDs de
 | `compose.yaml`, `docker/otel-collector/config.yaml` | Collector local y puertos dedicados de métricas. | Collector recibe OTLP por red interna; métricas usan puertos de host 9464/9465. |
 | `README.md`, `specs/ID-002-observabilidad-otel/` | Instrucciones, criterios y estado de validación. | El flujo y sus límites se documentan para ejecución y revisión. |
 | `docker/{otel-collector,jaeger,prometheus,postgres,grafana}`, `infra/otel-ecs-lab`, `infra/tf_modules`, `scripts/push-ecs-images.py` | Imágenes, configuración y recursos mínimos ECS/ECR; incluye dashboard Grafana y acceso a CloudWatch/Jaeger/Prometheus. | Tag `phase3-test-4` publicado; revisión 8 en rollout. El target CPU explicita datasource CloudWatch y requiere verificación en UI. |
-| `specs/ID-002-observabilidad-otel/04-analisis-overhead.md` | Diseño del experimento de overhead con k6, toggle OTel, carga de solo lectura, cálculos y evidencias. | Especificación únicamente; sin datos medidos ni afirmaciones de rendimiento. |
+| `specs/ID-002-observabilidad-otel/04-analisis-overhead.md` | Diseño del experimento con modo rápido y modo robusto, k6, toggle OTel, carga de solo lectura y cálculo de datos. | Define el propósito indicativo del modo rápido y conserva el criterio formal de tres rondas por variante; sin datos medidos ni capturas generadas por runner. |
 
 ## Evidencia de validación
 
@@ -98,7 +98,7 @@ Los servicios no ofrecían trazas distribuidas, métricas consultables ni IDs de
 | 4 | Ubicar los manifiestos Terraform junto al repositorio de aplicación. | Resuelto: root en `infra/otel-ecs-lab`, módulos en `infra/tf_modules`. | Ninguna. | ID-002, fase 2 |
 | 5 | Consultar señales end-to-end y destruir el laboratorio después de capturar evidencias. | Jaeger, Prometheus y CloudWatch todavía no tienen evidencia funcional registrada; el despliegue sigue activo. | Aplicar los pasos documentados y registrar logs, trazas, métricas, dashboard y limpieza. | ID-002, fases 2 y 3 |
 | 6 | Publicar y desplegar Grafana efímero en ECS; validar dashboard y correlación. | Tag `phase3-test-4` publicado y revisión 8 en rollout; falta confirmar estabilidad, validar CPU en la UI, guardar evidencias y comprobar correlación `trace_id` en Jaeger. | Seguir `03-visualizacion-grafana.md` y completar limpieza. | ID-002, fase 3 |
-| 7 | Ejecutar el análisis de overhead definido para fase 4. | El toggle, runner k6 y recolección local de recursos están implementados; faltan mediciones y evidencia. | Instalar k6 en el host de ejecución, correr al menos tres rondas válidas por variante y completar la tabla solo con datos observados. | ID-002, fase 4 |
+| 7 | Ejecutar el análisis de overhead definido para fase 4. | El toggle, runner k6 y recolección local de recursos están implementados; faltan mediciones. | Instalar k6 y ejecutar el modo rápido para comprobar el flujo; para completar RF-023/RNF-010, correr tres rondas válidas por variante y completar la tabla solo con datos observados. El usuario toma las capturas de imagen si las requiere. | ID-002, fase 4 |
 
 ## Estado de cierre
 

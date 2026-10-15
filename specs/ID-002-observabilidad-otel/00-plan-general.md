@@ -57,7 +57,7 @@ flowchart LR
 | Implementada sin validar | 1 | [Instrumentación OTel](01-instrumentacion-otel.md) | RF-001–RF-008, RNF-001–RNF-004 | APIs, Compose y Collector local. | Trazas, métricas y logs locales correlacionados. |
 | Implementada sin validar | 2 | [Despliegue ECS](02-despliegue-ecs.md) | RF-009–RF-017, RNF-005–RNF-007 | Collector, APIs, Jaeger, Prometheus, CloudWatch y Terraform. | Laboratorio ECS operativo para consultas y smoke tests. |
 | Rollout en curso; UI pendiente | 3 | [Visualización y correlación en ECS](03-visualizacion-grafana.md) | RF-018–RF-022, RNF-008–RNF-009; revalidación de RF-002, RF-011–RF-013 y RF-019. | Grafana, CloudWatch, Jaeger, Prometheus, ECS y Terraform. | Dashboard con seis paneles y recorrido reproducible log→traza. |
-| Implementada; mediciones pendientes | 4 | [Análisis de overhead](04-analisis-overhead.md) | RF-023, RNF-010. | Toggle `OTEL_ENABLED`, runner de Compose/k6 y recolección de Docker stats listos; falta ejecutar en un host con k6. | Comparación reproducible de p99, CPU y memoria con OTel activado/desactivado; sin resultados hasta ejecutar las corridas. |
+| Implementada; mediciones pendientes | 4 | [Análisis de overhead](04-analisis-overhead.md) | RF-023, RNF-010. | Toggle `OTEL_ENABLED`, runner de Compose/k6 y recolección de Docker stats listos; el modo rápido predeterminado es una corrida indicativa por variante; falta ejecutar en un host con k6. | Smoke rápido para comprobar el flujo; comparación formal requiere al menos tres rondas válidas por variante y declarar sus métricas con variabilidad. |
 
 ## Cobertura de requisitos
 
@@ -134,7 +134,8 @@ La fase 1 depende del código base de ID-001. La fase 2 depende de la instrument
 
 - [ ] RF-001 a RF-022 y RNF-001 a RNF-009 validados o con limitación explícita aceptada.
 - [x] Toggle OTel, escenario k6 y runner local implementados para RF-023/RNF-010.
-- [ ] Ejecutar al menos tres rondas válidas por variante y adjuntar las evidencias; hasta entonces la fase 4 queda pendiente de medición.
+- [ ] Ejecutar el modo rápido para revisar el flujo y conservar sus datos; etiquetarlo como indicativo, sin tratarlo como validación formal de RF-023/RNF-010.
+- [ ] Para cerrar formalmente la fase 4, ejecutar al menos tres rondas válidas por variante y completar la tabla con resultados observados. Las capturas de imagen las toma el usuario; el runner solo produce archivos de datos.
 - [ ] Dashboard Grafana con exactamente seis paneles y series no vacías para los casos generados.
 - [ ] Misma traza pedidos→catálogo→PostgreSQL visible en Jaeger y localizable desde `trace_id` en Grafana Explore.
 - [ ] Log de aplicación consultable en Grafana vía CloudWatch Logs.
