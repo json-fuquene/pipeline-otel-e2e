@@ -1,0 +1,82 @@
+{
+  "experiment": "exp2-errors-data",
+  "service": "data-service",
+  "hypothesis": "Con 10 % de errores (503 tras 500 ms), la regla correlacionada error_rate > baseline+2σ Y p99 > SLO alerta en ≤ 2 min con un trace_id de una solicitud fallida.",
+  "chaos": {
+    "error_rate": 0.1,
+    "error_delay_ms": 500,
+    "experiment": "exp2-errors-data"
+  },
+  "injected_at": "2026-10-17T23:36:56.417262+00:00",
+  "reverted_at": "2026-10-17T23:42:04.476994+00:00",
+  "recovered_at": "2026-10-17T23:42:06.587919+00:00",
+  "alarm_states_before": {
+    "pipeline-otel-obs-data-service-error-anomaly": {
+      "state": "OK",
+      "updated": "2026-10-17T16:21:54.327000-05:00"
+    },
+    "pipeline-otel-obs-data-service-p99-slo": {
+      "state": "OK",
+      "updated": "2026-10-17T17:38:59.715000-05:00"
+    },
+    "pipeline-otel-obs-data-service-static-error-rate": {
+      "state": "OK",
+      "updated": "2026-10-17T16:22:06.021000-05:00"
+    },
+    "pipeline-otel-obs-data-service-correlated-errors": {
+      "state": "OK",
+      "updated": "2026-10-17T16:20:55.880000-05:00"
+    }
+  },
+  "mttd_seconds": {
+    "pipeline-otel-obs-data-service-correlated-errors": null,
+    "pipeline-otel-obs-data-service-error-anomaly": null,
+    "pipeline-otel-obs-data-service-p99-slo": 123.3,
+    "pipeline-otel-obs-data-service-static-error-rate": 69.6
+  },
+  "primary_alarm": "pipeline-otel-obs-data-service-correlated-errors",
+  "primary_mttd_seconds": null,
+  "mttd_target_seconds": 120,
+  "mttd_met": false,
+  "steady_state": {
+    "window_seconds": 600,
+    "requests": 2728.205128205128,
+    "errors": 0.0,
+    "latency_p99_ms": 61.3,
+    "latency_slo_ms": 300.0,
+    "availability": 1.0,
+    "availability_slo": 0.99,
+    "availability_slo_met": true,
+    "window_budget_consumed_pct": 0.0,
+    "monthly_budget_consumed_pct": 0.0,
+    "latency_slo_met": true
+  },
+  "impact": {
+    "window_seconds": 308,
+    "requests": 1551.472077605779,
+    "errors": 157.36681444788442,
+    "latency_p99_ms": 725.4,
+    "latency_slo_ms": 300.0,
+    "availability": 0.89857,
+    "availability_slo": 0.99,
+    "availability_slo_met": false,
+    "window_budget_consumed_pct": 1014.3,
+    "monthly_budget_consumed_pct": 0.121,
+    "latency_slo_met": false
+  },
+  "impact_orders": {
+    "window_seconds": 308,
+    "requests": 1541.0807017543862,
+    "errors": 0.0,
+    "latency_p99_ms": 1074.0,
+    "latency_slo_ms": 400.0,
+    "availability": 1.0,
+    "availability_slo": 0.99,
+    "availability_slo_met": true,
+    "window_budget_consumed_pct": 0.0,
+    "monthly_budget_consumed_pct": 0.0,
+    "latency_slo_met": false
+  },
+  "enriched_alert": null,
+  "alert_actionable": false
+}
