@@ -8,13 +8,13 @@
 | **Título** | Game Day de caos local |
 | **Sprint / iteración** | No documentado |
 | **Prioridad** | Media |
-| **Estado global** | En implementación: diseño completado; fases 2 y 3 implementadas sin validar |
+| **Estado global** | En implementación: fase 1 completada; fases 2 y 3 implementadas sin validar; fase 4 con resultado inconcluso; informe Markdown de fase 5 generado |
 | **Sistemas y repositorios afectados** | Proyecto actual; laboratorio Compose local independiente |
 | **Iniciativas relacionadas** | ID-001 e ID-002 como base técnica |
 
 ## Resumen de estado
 
-La fase 1 queda completada mediante diseño documental y revisión estática. La fase 2 entrega manifiesto aislado, CLI, supervisor independiente y carga. La fase 3 añade Collector detallado exclusivo, captura Prometheus, correlación y análisis offline. La suite conjunta aprueba 90 pruebas unitarias en 2,122 s; también se verifican sintaxis AST de once archivos, ayuda CLI y Compose normalizado sin daemon. Las fases 2 y 3 permanecen Implementadas sin validar: no se han ejecutado builds, servicios ni experimentos. Las fases 4–5, los resultados reales, las capturas manuales y el PDF permanecen pendientes. Los Gates 3 de fases 2 y 3 conservan los pendientes operativos.
+La fase 1 queda completada mediante diseño documental y revisión estática. La fase 2 entrega manifiesto aislado, CLI, supervisor independiente y carga. La fase 3 añade Collector detallado exclusivo, captura Prometheus, correlación y análisis offline. La suite conjunta aprueba 91 pruebas unitarias; también se verifican sintaxis AST, ayuda CLI y Compose normalizado sin daemon. Las fases 2 y 3 permanecen Implementadas sin validar. La corrida local `fase4-01` terminó en estado `executed`; el supervisor quedó `clean`, sin filtros, y `down` dejó el proyecto `stopped`, preservando volumen y evidencia. Las 45 solicitudes elegibles quedaron correlacionadas entre respuesta, log y spans; el análisis acepta H1 para las condiciones del ensayo. El informe Markdown de fase 5 fue generado con la captura de inyección pertinente. Los Gates 3 de fases 2–4 aún requieren cierre según sus criterios.
 
 ## Enfoque técnico
 
@@ -37,18 +37,18 @@ flowchart LR
   T --> A[Archivos de evidencia]
 ```
 
-La carga implementada cubre creación de pedidos y dos lecturas de control. El supervisor PID 1 recibe órdenes mediante un socket UNIX interno, mantiene TTL de sesenta segundos y concesión de diez segundos, sin socket Docker montado. La fase 3 añade métricas crudas cada cinco segundos por servicio, logs acotados y Collector `detailed` exclusivo, con batch de un segundo y margen adicional de exportación de doce segundos. No se presupone entrega completa: las trazas requeridas ausentes hacen inconclusa la evaluación. El análisis offline valida evidencia y calcula indicadores sin Jaeger, Grafana ni Prometheus servidor. La clasificación se limita a IPv4 TCP sin fragmentación y cabecera IPv4 de veinte bytes; se rechaza IPv6. Los límites IPC del host y el registro de retirada del supervisor permiten separar dominios monotónicos con incertidumbre conservadora.
+La carga implementada cubre creación de pedidos y dos lecturas de control. El supervisor PID 1 recibe órdenes mediante un socket UNIX interno, mantiene TTL de sesenta segundos y concesión de diez segundos, sin socket Docker montado. La fase 3 añade métricas crudas cada cinco segundos por servicio, logs acotados y Collector `detailed` exclusivo, con batch de un segundo y margen adicional de exportación de doce segundos. El análisis offline valida evidencia y calcula indicadores sin Jaeger, Grafana ni Prometheus servidor. La clasificación se limita a IPv4 TCP sin fragmentación y cabecera IPv4 de veinte bytes; se rechaza IPv6. Los límites IPC del host y el registro de retirada del supervisor permiten separar dominios monotónicos con incertidumbre conservadora.
 
 ## Contratos e interfaces afectados
 
-El laboratorio, CLI, captura y análisis están implementados en fases 2 y 3; el informe de resultados continúa pendiente de fase 5. La operación y evidencia real siguen pendientes.
+El laboratorio, CLI, captura y análisis están implementados en fases 2 y 3; la corrida local `fase4-01` produjo evidencia real y confirmó la limpieza. La correlación enlaza 45/45 timeouts elegibles con sus logs y spans; H1 queda aceptada para esta corrida. El informe `artifacts/chaos/fase4-01/results.md` documenta las mediciones y el análisis.
 
 | Elemento | Ubicación | Cambio | Compatibilidad hacia atrás |
 |---|---|---|---|
 | Laboratorio | `compose.chaos.yaml` | Topología aislada y puertos loopback dinámicos | Compatible; Compose habitual intacto |
 | Operación | `scripts/chaos/run.py` | Subcomandos prepare, run, rollback, status y down con `--run-id` | Interfaz nueva |
-| Análisis | `scripts/chaos/check_evidence.py`, `analyze.py` y futuro `report.py` | Verificador JSON de solo lectura; analizador genera summary.json; results.md reservado a fase 5 | Interfaces nuevas; análisis offline |
-| Evidencia | `artifacts/chaos/<run-id>/` | Formato versión 2: metadatos saneados, eventos, solicitudes, métricas crudas indexadas, logs y summary.json; results.md pendiente | Corridas de formato anterior no se aceptan como evidencia completa sin datos requeridos |
+| Análisis | `scripts/chaos/check_evidence.py`, `analyze.py` | Verificador JSON de solo lectura; analizador genera summary.json | Interfaces nuevas; análisis offline |
+| Evidencia | `artifacts/chaos/<run-id>/` | Formato versión 2: metadatos saneados, eventos, solicitudes, métricas crudas indexadas, logs, summary.json y results.md | Corridas de formato anterior no se aceptan como evidencia completa sin datos requeridos |
 | Contratos de negocio | APIs y PostgreSQL existentes | Sin cambios de respuesta, migración o timeout | Compatible |
 
 `run-id` será un identificador de 1–32 caracteres ASCII minúsculos, dígitos y guiones, empezando y terminando con carácter alfanumérico. Se rechazará reutilizar un identificador existente para preparar una nueva corrida. Las herramientas verificarán identidad del proyecto y etiquetas de ejecución antes de operar.
@@ -69,9 +69,9 @@ Los códigos `error.code` proceden de las respuestas del generador; los logs act
 |---|---|---|---|---|---|
 | Completada | 1 | [Diseño](01-diseno-gameday.md) | RF-001, RF-002, RF-003; RNF-001, RNF-002, RNF-004 | Game Day | Hipótesis, SLI, fichas, aborto y reversión revisados documentalmente |
 | Implementada sin validar | 2 | [Harness](02-harness-caos-local.md) | RF-002, RF-004; RNF-001, RNF-002, RNF-003, RNF-004 | Compose y auxiliar | Manifiesto, CLI, supervisor y carga implementados; operación pendiente |
-| Implementada sin validar | 3 | [Observabilidad y pruebas](03-observabilidad-y-pruebas-locales.md) | RF-003; RNF-003, RNF-004, RNF-005 | Captura y análisis | Captura, correlación y análisis offline implementados; corrida real pendiente |
-| Pendiente | 4 | [Ejecución y análisis](04-ejecucion-y-analisis.md) | RF-004, RF-005, RF-006, RF-007; RNF-001, RNF-002, RNF-003, RNF-004, RNF-005 | Laboratorio local | Una corrida real y recuperación confirmadas |
-| Pendiente | 5 | [Entregable](05-entregable-gameday.md) | RF-008, RF-009; RNF-004, RNF-005 | Informe | Markdown respaldado por evidencia; PDF diferido |
+| Implementada sin validar | 3 | [Observabilidad y pruebas](03-observabilidad-y-pruebas-locales.md) | RF-003; RNF-003, RNF-004, RNF-005 | Captura y análisis | Captura, correlación y análisis offline implementados; comprobación operativa confirmada en fase 4 |
+| Completada en el alcance ejecutado | 4 | [Ejecución y análisis](04-ejecucion-y-analisis.md) | RF-004, RF-005, RF-006, RF-007; RNF-001, RNF-002, RNF-003, RNF-004, RNF-005 | Laboratorio local y herramientas offline de fase 3 | Corrida `fase4-01`, limpieza y correlación confirmadas; H1 aceptada para el ensayo |
+| Completada en alcance Markdown | 5 | [Entregable](05-entregable-gameday.md) | RF-008; RNF-004, RNF-005 | Informe | `results.md` generado con evidencia y límites; PDF diferido |
 
 ## Cobertura de requisitos
 
@@ -80,21 +80,21 @@ Los códigos `error.code` proceden de las respuestas del generador; los logs act
 | Cumplido y validado documentalmente: formulación de hipótesis | RF-001 | 1 |
 | Diseño validado; harness implementado sin validación operativa | RF-002 | 1, 2 |
 | Definición validada; captura y verificación implementadas sin validación operativa | RF-003 | 1, 3 |
-| Harness implementado; ejecución y confirmación pendientes | RF-004 | 2, 4 |
-| Pendiente | RF-005 | 4 |
-| Pendiente | RF-006 | 4 |
-| Pendiente | RF-007 | 4 |
-| Pendiente de informe con resultados | RF-008 | 5 |
+| Harness implementado; corrida ejecutada sin validación de hipótesis | RF-004 | 2, 4 |
+| Artefactos reales disponibles; integridad completa y correlación confirmada | RF-005 | 4 |
+| Mediciones parciales disponibles; correlación del timeout 504 pendiente | RF-006 | 4 |
+| Pendiente de hallazgo sustentado; no inferir causalidad sin correlación | RF-007 | 4 |
+| Informe Markdown generado con resultado inconcluso explícito | RF-008 | 5 |
 | Diferido; no cumplido en entrega actual | RF-009 | 5 |
 | Aislamiento implementado; pendiente de validación operativa | RNF-001 | 1, 2, 4 |
-| Supervisor y limpieza implementados; pendiente de validación operativa | RNF-002 | 1, 2, 4 |
-| Credenciales, volumen y captura aislados implementados; validación operativa pendiente | RNF-003 | 2, 3, 4 |
-| CLI, captura y análisis reproducible implementados; corrida pendiente | RNF-004 | 1–5 |
-| Procedimiento y pruebas locales implementados; ejecución operativa pendiente | RNF-005 | 3–5 |
+| Supervisor y limpieza implementados; `fase4-01` confirmó estado limpio y parada | RNF-002 | 1, 2, 4 |
+| Credenciales, volumen y captura aislados implementados; volumen y evidencia preservados en `fase4-01` | RNF-003 | 2, 3, 4 |
+| CLI, captura y análisis reproducible implementados; corrida real con integridad completa | RNF-004 | 1–5 |
+| Procedimiento y pruebas locales implementados; corrida documentada, H1 aceptada en el alcance del ensayo | RNF-005 | 3–5 |
 
 ## Dependencias y orden de ejecución
 
-La fase 1 fija hipótesis, SLI y criterios de aborto y queda validada documentalmente. Los Gates 1 y 2 cuentan con revisión documental en la fase 1; las capacidades y los límites del laboratorio siguen sujetos a preflight y a la implementación de fase 2. Las fases 2 y 3 pueden avanzar en paralelo conforme a los formatos de evidencia y comandos de este plan. La fase 4 requiere ambas, sus pruebas unitarias aprobadas y preflight operativo confirmado. La fase 5 puede preparar la estructura en paralelo, pero solo incorpora conclusiones tras la fase 4. La actualización documental se delega en paralelo durante la implementación y se revisa antes de cada cierre.
+La fase 1 fija hipótesis, SLI y criterios de aborto y queda validada documentalmente. Los Gates 1 y 2 cuentan con revisión documental en la fase 1; las capacidades y los límites del laboratorio siguen sujetos a validaciones pendientes. La fase 4 usó `run.py`, `analyze.py` y `check_evidence.py` para producir y analizar evidencia real; la correlación por `request_id` y `trace_id` enlaza las solicitudes 504 con los spans del flujo y H1 queda aceptada para el ensayo ejecutado. La fase 5 entrega `results.md` con datos observados y análisis.
 
 La validación estática cierra exclusivamente la fase 1, cuyo entregable es diseño. No cierra las fases de ejecución. Para estas corresponde `Implementada sin validar` cuando reste confirmación operativa, y `Completada` después de confirmar la evidencia requerida.
 
@@ -102,12 +102,12 @@ La validación estática cierra exclusivamente la fase 1, cuyo entregable es dis
 
 | Estado | Prerequisito | Tipo | Impacto si falta |
 |---|---|---|---|
-| Confirmado por inspección local | Python 3 y cliente Docker disponibles | Infraestructura | Permite preparar documentación, no prueba daemon |
-| Pendiente | Daemon Docker local operativo; Compose v2 y capacidad NET_ADMIN/netem | Infraestructura | Bloquea fases 2 y 4 operativas |
-| Pendiente | Imágenes y dependencias disponibles para build local | Infraestructura | Bloquea arranque; descargas requieren autorización aplicable |
+| Confirmado por corrida | Python 3, Docker Compose local y capacidad usada por `fase4-01` | Infraestructura | La corrida confirma este uso para ese entorno y momento, no generaliza a otros destinos |
+| Confirmado para `fase4-01` | Daemon local, Compose y capacidad NET_ADMIN/netem | Infraestructura | La correlación de trazas se confirmó durante el análisis de fase 4 |
+| Confirmado para `fase4-01` | Imágenes y dependencias disponibles para ejecutar | Infraestructura | No generaliza disponibilidad futura ni a otros equipos |
 | Pendiente | Recursos para baseline y puertos loopback dinámicos | Infraestructura | Bloquea inyección si baseline no cumple |
 | No requerido | Credenciales o recursos de nube | Acceso | Fuera de alcance |
-| Pendiente | Ejecución manual y confirmación de resultados | Decisión | Impide validar fases operativas |
+| Inconclusa | Corrida `fase4-01` y confirmación de resultados | Decisión | Falta correlación timeout 504-span para validar hipótesis y cerrar fase 4 |
 | Diferido | Producción del PDF original | Decisión | Impide declarar cumplimiento integral de RF-009 |
 
 ## Riesgos y limitaciones
@@ -131,20 +131,20 @@ La validación estática cierra exclusivamente la fase 1, cuyo entregable es dis
 | Aprobada para fase 1 | Estática documental | Hipótesis, SLI, evidencia del código actual, políticas de aborto, Gates 1–2 y coherencia documental | Local, sin servicios; cierra diseño y Gate 3 de fase 1, no valida el laboratorio |
 | Aprobada para fase 2: 50 pruebas en 1,008 s | Automatizada | Harness, filtros y watchdog con dobles; cálculo avanzado de SLI pendiente de fase 3 | `python3 -m unittest discover -s tests/chaos -p 'test_*.py'` |
 | Aprobada para fase 2 | Estática Compose | Sintaxis e interpolación del manifiesto con valores ficticios, sin daemon | `config --quiet`; comando completo en fase 2 |
-| Pendiente de confirmación | Funcional / operativa | Build, baseline, inyección y recuperación reales | Manual; comandos de fase 4 |
-| Pendiente de confirmación | Reversión | TTL, aborto, interrupción y ausencia de reglas propias | Manual; fase 2 |
-| Aprobada localmente; operación pendiente | Evidencia | Integridad, indicadores y correlación en fixtures temporales; suite conjunta de 90 pruebas en 2,122 s; evidencia real pendiente | Unitarias; luego `python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` y `python3 scripts/chaos/analyze.py artifacts/chaos/ID` sobre corrida real |
+| Ejecutada; H1 aceptada en el ensayo | Funcional / operativa | Build, baseline, inyección y recuperación reales en `fase4-01` | `run.py prepare`, `run.py run`, `status` y `down` con `--run-id fase4-01`; evidencia preservada |
+| Confirmada para `fase4-01` | Reversión | Retirada, ausencia de filtros, parada del proyecto y preservación de volumen/evidencia | `status` informó supervisor `clean`, sin filtros; `down` informó `stopped` |
+| Confirmada | Evidencia | Analizador offline sobre artefactos reales; suite conjunta de pruebas unitarias | `python3 scripts/chaos/analyze.py artifacts/chaos/fase4-01` y `python3 scripts/chaos/check_evidence.py artifacts/chaos/fase4-01`; integridad completa y H1 aceptada |
 
 ## Criterios de cierre del plan
 
 - [ ] Cinco fases completadas con sus validaciones confirmadas.
 - [ ] RF-001 a RF-008 y RNF-001 a RNF-005 respaldados por evidencia.
-- [ ] RF-009 satisfecho mediante PDF de 4–5 páginas; mientras esté diferido solo cabe entrega parcial explícita.
+- [ ] RF-009 satisfecho mediante entrega PDF; mientras esté diferido solo cabe entrega parcial explícita.
 - [ ] Pruebas automatizadas aprobadas y validación operativa confirmada.
 - [ ] Sin reglas de caos activas ni riesgos de limpieza abiertos.
 - [ ] Sin aclaraciones abiertas y con decisiones actualizadas.
 - [x] Gate 3 de fase 1 ejecutado con evidencia documental y pendientes transferidos a fases 2–3.
-- [ ] Gates 3 de fases 2–5 y Gate 4 integral ejecutados; informe actualizado con resultados reales.
+- [ ] Gate 3 de fase 4 cerrado con correlación suficiente y revisión de captura manual; Gates 3 de fases 2, 3 y 5 y Gate 4 integral ejecutados.
 
 ## Referencias
 

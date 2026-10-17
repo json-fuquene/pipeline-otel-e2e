@@ -1,0 +1,225 @@
+{
+  "format_version": 2,
+  "evidence_kind": "measured",
+  "run_id": "fase4-01",
+  "project": "chaos-fase4-01",
+  "docker_endpoint": "unix:///var/run/docker.sock",
+  "created_at": "2026-10-17T05:16:32.329806+00:00",
+  "experiment": "E1",
+  "delay_ms": 6000,
+  "ttl_seconds": 60,
+  "lease_seconds": 10,
+  "windows_seconds": {
+    "baseline": 60,
+    "fault": 60,
+    "drain": 15,
+    "recovery": 60
+  },
+  "rate_per_operation": 1,
+  "max_business_in_flight": 10,
+  "request_timeout_seconds": 8,
+  "clock_domains": {
+    "requests": "host",
+    "supervisor": "container",
+    "mapping": "IPC host_before/host_after bounds"
+  },
+  "versions": {
+    "python": "3.14.7",
+    "docker": "Docker version 29.8.2, build 7fc2dff",
+    "compose": "5.6.0"
+  },
+  "state": "stopped",
+  "urls": {
+    "catalog": "http://127.0.0.1:65218",
+    "orders": "http://127.0.0.1:65220"
+  },
+  "metric_urls": {
+    "catalog": "http://127.0.0.1:65219",
+    "orders": "http://127.0.0.1:65221"
+  },
+  "images": {
+    "catalog": "sha256:822f538422bc307dc19e951c50782b4fb105d012c1ce4c87da5846c8b9b76af2",
+    "orders": "sha256:82d832c757fb7c0566917ab3277fc0bf9c1a06a3ad12cba7fc8a9218a95dff22",
+    "chaos-net": "sha256:c85db240fd6d9cfba66a934ebdc68707d4dcc0341db9f2882fa10f26f19af704",
+    "postgres": "sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+    "otel-collector": "sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6",
+    "catalog-migrate": "sha256:2ba8c36dabbad36f1ae45c9e1a739646096f5f349e79cbc08bf994a20061b017",
+    "orders-migrate": "sha256:3dfc93828afe2449260e202790a43cb07f690318f0b3d9a8ee818b10c1eecde1"
+  },
+  "target": "172.20.0.4",
+  "product_id": "7c11a4dc-c5fa-47e1-9d42-e757d1ee4eae",
+  "order_id": "13de65dd-6b72-49ce-a369-10f48b6c8f42",
+  "capture_start_utc": "2026-10-17T05:17:09.322871+00:00",
+  "activation": {
+    "state": "active",
+    "target": "172.20.0.4",
+    "device": "eth0",
+    "deadline": 20380.063801971,
+    "lease": 20330.063803271,
+    "reason": null,
+    "removed_monotonic": null,
+    "monotonic": 20320.076173059,
+    "snapshot": {
+      "qdisc": [
+        {
+          "kind": "prio",
+          "handle": "7a10:",
+          "root": true,
+          "refcnt": 9,
+          "options": {
+            "bands": 3,
+            "priomap": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "multiqueue": false
+          },
+          "bytes": 0,
+          "packets": 0,
+          "drops": 0,
+          "overlimits": 0,
+          "requeues": 0,
+          "backlog": 0,
+          "qlen": 0
+        },
+        {
+          "kind": "netem",
+          "handle": "7a20:",
+          "parent": "7a10:3",
+          "options": {
+            "limit": 1000,
+            "delay": {
+              "delay": 6,
+              "jitter": 0,
+              "correlation": 0
+            },
+            "seed": 16915724061350200958,
+            "ecn": false,
+            "gap": 0
+          },
+          "bytes": 0,
+          "packets": 0,
+          "drops": 0,
+          "overlimits": 0,
+          "requeues": 0,
+          "backlog": 0,
+          "qlen": 0
+        }
+      ],
+      "filters": [
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0
+        },
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0,
+          "options": {
+            "fh": "800:",
+            "ht_divisor": 1
+          }
+        },
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0,
+          "options": {
+            "fh": "800::800",
+            "order": 2048,
+            "key_ht": "800",
+            "bkt": "0",
+            "flowid": "7a10:3",
+            "not_in_hw": true,
+            "rule_hit": 0,
+            "success": 0,
+            "match": {
+              "value": "1f40",
+              "mask": "ffff",
+              "offmask": "",
+              "off": 20
+            }
+          }
+        }
+      ]
+    },
+    "host_confirmation_monotonic": 20320.096821576
+  },
+  "cleanup_verified": true,
+  "metric_names": {
+    "catalog": [
+      "db_client_connections_usage_connections",
+      "http_server_active_requests",
+      "http_server_request_body_size_bytes_bucket",
+      "http_server_request_body_size_bytes_count",
+      "http_server_request_body_size_bytes_sum",
+      "http_server_request_duration_seconds_bucket",
+      "http_server_request_duration_seconds_count",
+      "http_server_request_duration_seconds_sum",
+      "http_server_response_body_size_bytes_bucket",
+      "http_server_response_body_size_bytes_count",
+      "http_server_response_body_size_bytes_sum",
+      "process_cpu_seconds_total",
+      "process_max_fds",
+      "process_open_fds",
+      "process_resident_memory_bytes",
+      "process_start_time_seconds",
+      "process_virtual_memory_bytes",
+      "python_gc_collections_total",
+      "python_gc_objects_collected_total",
+      "python_gc_objects_uncollectable_total",
+      "python_info",
+      "target_info"
+    ],
+    "orders": [
+      "db_client_connections_usage_connections",
+      "http_client_request_duration_seconds_bucket",
+      "http_client_request_duration_seconds_count",
+      "http_client_request_duration_seconds_sum",
+      "http_server_active_requests",
+      "http_server_request_body_size_bytes_bucket",
+      "http_server_request_body_size_bytes_count",
+      "http_server_request_body_size_bytes_sum",
+      "http_server_request_duration_seconds_bucket",
+      "http_server_request_duration_seconds_count",
+      "http_server_request_duration_seconds_sum",
+      "http_server_response_body_size_bytes_bucket",
+      "http_server_response_body_size_bytes_count",
+      "http_server_response_body_size_bytes_sum",
+      "process_cpu_seconds_total",
+      "process_max_fds",
+      "process_open_fds",
+      "process_resident_memory_bytes",
+      "process_start_time_seconds",
+      "process_virtual_memory_bytes",
+      "python_gc_collections_total",
+      "python_gc_objects_collected_total",
+      "python_gc_objects_uncollectable_total",
+      "python_info",
+      "target_info"
+    ]
+  },
+  "metrics_interval_seconds": 5,
+  "capture_end_utc": "2026-10-17T05:20:39.056371+00:00"
+}

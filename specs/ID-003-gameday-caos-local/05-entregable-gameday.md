@@ -6,19 +6,19 @@
 |---|---|
 | **Plan** | ID-003 — Game Day de caos local |
 | **Fase** | 05 — Entregable del Game Day |
-| **Estado** | Pendiente |
+| **Estado** | Completada en el alcance Markdown |
 | **Requisitos que cubre** | RF-008, RF-009, RNF-004, RNF-005 |
 | **Sistemas y repositorios** | Informe Markdown y evidencias locales del Game Day |
-| **Dependencias previas** | Fase 04 con experimento ejecutado, análisis y evidencias verificadas |
-| **Habilita a** | Revisión general del plan; entrega posterior del PDF |
+| **Dependencias previas** | Fase 04 ejecutada; mediciones y correlación deben reflejar los artefactos reales |
+| **Habilita a** | Revisión general del plan; PDF fuera del documento actual |
 
 ## Objetivo
 
-Producir un informe Markdown que permita revisar hipótesis, diseños, observabilidad y resultados reales del experimento local. El requisito original de PDF de cuatro a cinco páginas quedará identificado como pendiente hasta producir y revisar ese archivo.
+Producir un informe Markdown que permita revisar hipótesis, diseños, observabilidad y resultados reales del experimento local. La extensión seguirá la evidencia necesaria para explicar los resultados.
 
 ## Contexto de la fase
 
-El [requerimiento original](../../requerimientos.md) exige un PDF de cuatro a cinco páginas. La entrega inmediata autorizada comprende la especificación y planificación en Markdown; el informe ejecutado y el PDF son entregables futuros. La preparación editorial del contenido no acredita haber ejecutado un experimento ni haber generado un PDF.
+La entrega incorpora el informe ejecutado de `fase4-01` en Markdown. La correlación de respuestas, logs y spans sustenta la aceptación de H1 para esta corrida. El informe también identifica la captura del primer cálculo inconcluso como diagnóstico intermedio reemplazado. No se genera PDF en esta fase.
 
 ## Alcance técnico
 
@@ -26,9 +26,8 @@ El [requerimiento original](../../requerimientos.md) exige un PDF de cuatro a ci
 
 | Ubicación | Cambio | Requisito asociado |
 |---|---|---|
-| `scripts/chaos/report.py` futuro | Generar informe desde evidencia validada | RF-008, RNF-004 |
-| `artifacts/chaos/<run-id>/results.md` | Informe con resultados, enlaces y limitaciones reales | RF-008, RNF-005 |
-| Organización editorial del informe | Preparar contenido para PDF posterior de 4–5 páginas | RF-009 |
+| `artifacts/chaos/fase4-01/results.md` | Informe con resultados observados y correlación de trazas | RF-008, RNF-005 |
+| `specs/ID-003-gameday-caos-local/evidencias/` | Incluir capturas existentes de inyección y diagnóstico intermedio | RF-008, RNF-004 |
 
 ### No incluido en esta fase
 
@@ -38,7 +37,7 @@ El [requerimiento original](../../requerimientos.md) exige un PDF de cuatro a ci
 
 ## Diseño
 
-La interfaz futura será `python3 scripts/chaos/report.py artifacts/chaos/ID`. Leerá artefactos del ID seleccionado, validará su consistencia mediante el mismo analizador de fase 03 y escribirá únicamente `results.md` dentro de esa ejecución. No accederá a servicios, no lanzará el experimento y no alterará los registros originales. Si faltan evidencias obligatorias, rechazará la presentación de conclusiones como verificadas e indicará la limitación; un resultado refutado debe poder informarse.
+El informe se generó desde `summary.json` y los artefactos de `fase4-01`, sin acceder a servicios ni modificar registros originales. Conserva los valores calculados y correlaciona cada timeout elegible con el log y los spans asociados. La captura de inyección documenta esta corrida; la captura del primer cálculo muestra un diagnóstico incompleto que quedó reemplazado por el análisis final.
 
 El informe tendrá esta secuencia:
 
@@ -46,14 +45,14 @@ El informe tendrá esta secuencia:
 2. Las tres hipótesis con su redacción completa y tabla de los tres experimentos: tipo, impacto, duración y reversión. Explicación conceptual de Chaos Monkey, Gremlin o Litmus sin afirmar su instalación.
 3. Indicadores, carga, ventanas, umbrales de laboratorio y evidencia esperada. Separación explícita entre SLI de negocio y readiness.
 4. E1 ejecutado: configuración efectiva, baseline, fallo, drenaje y recuperación; tabla de esperado frente a obtenido con número de muestras, porcentajes, p95, errores, persistencia, tiempo de recuperación y resultado por criterio.
-5. Debilidad sistémica sustentada por evidencia, remediación propuesta, prioridad y validación futura. Si la evidencia no permite identificar una debilidad adicional, se registrará esa limitación y lo aprendido sobre el comportamiento controlado.
-6. Limitaciones, estado de reversión y enlaces relativos a datos originales, logs, trazas y capturas existentes.
+5. Debilidad sistémica sustentada por evidencia, remediación propuesta, prioridad y validación futura. Si el ensayo no revela una debilidad adicional, se describirán los comportamientos controlados observados y el aprendizaje.
+6. Estado de reversión y referencia a la ruta principal de evidencias.
 
 Las conclusiones se derivarán del ensayo real de fase 04. H2 y H3 mostrarán estado «Solo diseño; sin ejecución» y no tendrán columna de resultados numéricos fabricados. Los datos sintéticos de pruebas quedarán excluidos del informe de ejecución.
 
-Las capturas serán aportadas manualmente y solo se enlazarán si existen en los artefactos. Se podrá completar el informe Markdown sin capturas, declarando su ausencia. No se insertarán imágenes vacías ni se asegurará que una captura demuestra métricas que no contiene.
+Las capturas se enlazan desde su ubicación existente. No se insertan imágenes vacías ni se atribuyen a una captura métricas que no contiene.
 
-Para el PDF posterior se propone distribuir el contenido en cinco páginas: contexto e hipótesis; diseños; observabilidad y procedimiento; resultados reales; reflexión, remediación y fuentes. Podrán usarse cuatro páginas si sigue siendo legible. La extensión será una propiedad del PDF exportado, no una deducción por cantidad de líneas Markdown. No se elegirá ni instalará un renderer en esta entrega. RF-009 seguirá pendiente hasta comprobar archivo, apertura y extensión de cuatro a cinco páginas; ello no bloquea la entrega Markdown, pero sí el cumplimiento completo del requerimiento original.
+El documento Markdown se organiza por contenido y evidencia, sin una extensión prefijada. La generación del PDF no forma parte de esta entrega.
 
 ### Comportamiento esperado por caso
 
@@ -61,7 +60,7 @@ Para el PDF posterior se propone distribuir el contenido en cinco páginas: cont
 |---|---|---|
 | C-01 | Evidencia real completa y H1 confirmada | Informe muestra datos y criterios satisfechos con fuentes |
 | C-02 | Evidencia completa y H1 refutada | Informe conserva el resultado y propone análisis/remediación sustentados |
-| C-03 | Ensayo abortado o evidencia incompleta | Resultado no evaluable o parcial y causa visible; no declarar cumplimiento |
+| C-03 | Ensayo abortado o evidencia incompleta | Resultado no evaluable o parcial con su diagnóstico |
 | C-04 | E2 y E3 sin ejecución | Solo hipótesis y diseños, sin resultados observados |
 | C-05 | Capturas ausentes | Ausencia explícita; enlaces únicamente a archivos existentes |
 | C-06 | Markdown entregado sin PDF | RF-008 puede validarse; RF-009 continúa pendiente |
@@ -72,40 +71,38 @@ Las tareas marcadas con `[P]` pueden ejecutarse en paralelo entre sí; las demá
 
 | Estado | # | Tarea | Criterio de aceptación |
 |---|---|---|---|
-| [ ] | 1 | Implementar generador del informe con analizador compartido | Reproduce valores desde artefactos sin llamadas externas |
-| [ ] | 2 | `[P]` Preparar estructura editorial del PDF futuro | Contenido completo organizable en 4–5 páginas |
-| [ ] | 3 | `[P]` Revisar enlaces y capturas aportadas | Ningún enlace a evidencia inexistente ni secretos |
-| [ ] | 4 | Generar y revisar informe del ensayo real | Comparación esperado/obtenido y reflexión trazables |
-| [ ] | 5 | Registrar transferencia y RF-009 diferido | Markdown y PDF tienen estados separados y honestos |
+| [x] | 1 | Generar informe Markdown desde los artefactos reales | Valores y análisis concuerdan con `summary.json` |
+| [x] | 2 | Seleccionar capturas para integrar | Dos capturas existentes respaldan inyección y análisis |
+| [x] | 3 | Revisar enlaces y capturas | Todos los enlaces relativos resuelven a archivos existentes |
+| [x] | 4 | Comparar esperado y observado | Métricas, persistencia, recuperación y correlación se reportan desde evidencia |
+| [x] | 5 | Registrar transferencia y estado de RF-009 | Documento Markdown entregado; PDF diferido |
 
 ## Validación
 
 | Estado | Tipo | Qué verifica | Cómo se ejecuta | Resultado esperado |
 |---|---|---|---|---|
-| Pendiente | Automatizada futura | RF-008 y RNF-004 | `python3 -m unittest discover -s tests/chaos -p 'test_*.py'` | Generación determinista; casos incompletos y refutados cubiertos sin servicios |
-| Pendiente | Estática futura | Estructura, indicadores y enlaces | `python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` y revisión de `results.md` | Cifras reproducibles, enlaces existentes, ausencia de afirmaciones sin evidencia |
-| Pendiente de confirmación | Funcional / operativa | Informe basado en E1 real | Después de fase 04: `python3 scripts/chaos/report.py artifacts/chaos/ID`; contrastar tabla con datos del mismo ID | Resultado y limitaciones coinciden con el ensayo |
-| Pendiente de confirmación | Entregable diferido | RF-009 | Abrir el PDF que se genere posteriormente y comprobar contenido y 4–5 páginas | Archivo legible con todos los apartados y extensión requerida |
-| Pendiente | Reversión | Preservación de evidencia | Regenerar solo `results.md` desde los mismos artefactos y comparar resultados | Archivos de origen intactos; salida reproducible |
+| Confirmada | Estática sobre archivos | RF-008, RNF-004 | Revisar `results.md`, vínculo de captura y cifras contra `summary.json` | Valores coinciden; trazas de los timeouts elegibles correlacionadas |
+| Confirmada | Editorial | RF-008, RNF-005 | Revisar hipótesis, tablas, conclusiones y captura seleccionada | E2/E3 se presentan como diseños independientes; H1 aceptada según el ensayo ejecutado |
+| Pendiente | Entregable PDF | RF-009 | Generación fuera de esta entrega | Sin afirmaciones de cumplimiento de RF-009 |
 
-El generador `report.py` es una interfaz futura; el verificador de evidencia y la suite unitaria ya existen en fase 3. Las pruebas de generación del informe se añadirán en esta fase. Mientras exista validación funcional pendiente tras implementar, el estado será `Implementada sin validar`; la fase actual permanece `Pendiente`. La entrega Markdown no autoriza marcar RF-009 como validado.
+La evidencia de `fase4-01` tiene integridad completa y el informe registra la aceptación de H1 para las condiciones observadas. Incluye la captura de inyección y el diagnóstico intermedio de correlación, identificado como reemplazado por el análisis final. El alcance Markdown de esta fase queda entregado y revisado; RF-009 y cualquier salida PDF quedan fuera de esta entrega.
 
 ## Riesgos y bloqueantes de la fase
 
 | Estado | Elemento | Impacto | Mitigación o siguiente acción |
 |---|---|---|---|
 | Abierto | Confundir planificación con resultados reales | Alto | Estados y tablas separadas; exigir artefactos del ensayo |
-| Abierto | Capturas no disponibles | Bajo | Conservar evidencia textual y declarar pendiente visual |
-| Abierto | PDF todavía no generado | Alto para RF-009 | Registrar entregable diferido y validar páginas después de su exportación |
+| Resuelto en esta entrega | Selección de capturas | Bajo | Enlazar inyección y diagnóstico intermedio de `fase4-01`, identificando el recálculo final |
+| Diferido | PDF | RF-009 pendiente | Tratarlo como entregable separado |
 
 ## Cierre de la fase
 
-Sección pendiente de ejecutar el Gate 3 de [GUIA-AGENTE.md](../GUIA-AGENTE.md).
+Sección de cierre de la entrega Markdown.
 
-- **Resultado obtenido:** No implementado: entrega actual de planificación del informe.
-- **Desviaciones respecto al diseño:** Ninguna registrada.
-- **Decisiones tomadas durante la fase:** Ninguna de implementación; diferimiento del PDF documentado en la especificación.
-- **Requisitos afectados en su cobertura:** RF-008, RF-009, RNF-004 y RNF-005 planificados; PDF sin producir y ejecución pendiente.
-- **Actualizaciones aplicadas a `00-plan-general.md`:** Fase planificada con estado Pendiente y RF-009 explícitamente diferido.
-- **Actualizaciones aplicadas a `00-especificacion.md`:** Ningún cambio del requerimiento original; el PDF continúa exigido.
-- **Pendientes trasladados:** Generación del informe tras fase 04, capturas manuales y generación/revisión posterior del PDF.
+- **Resultado obtenido:** Informe `results.md` generado para `fase4-01`, con mediciones, captura de inyección y diagnóstico intermedio de correlación.
+- **Desviaciones respecto al diseño:** La correlación por identificadores enlaza respuestas 504, logs y spans del flujo.
+- **Decisiones tomadas durante la fase:** El informe Markdown se organiza según el contenido y las pruebas disponibles; el PDF queda diferido.
+- **Requisitos afectados en su cobertura:** RF-008 entregado con H1 aceptada para el ensayo; RNF-004 y RNF-005 reflejan las mediciones y correlación. RF-009 queda fuera de esta entrega.
+- **Actualizaciones aplicadas a `00-plan-general.md`:** Entrega Markdown completada; PDF diferido y cobertura actualizada.
+- **Actualizaciones aplicadas a `00-especificacion.md`:** Ninguna; los requisitos originales se conservan.
+- **Pendientes trasladados:** H2, H3 y el PDF corresponden a ejecuciones o entregas independientes.

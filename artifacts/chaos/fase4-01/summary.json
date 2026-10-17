@@ -1,0 +1,403 @@
+{
+  "format_version": 2,
+  "run_id": "fase4-01",
+  "evidence_kind": "measured",
+  "integrity": {
+    "complete": true,
+    "errors": [],
+    "warnings": []
+  },
+  "hypothesis": "aceptada",
+  "calculated_hypothesis": "aceptada",
+  "requires_manual_confirmation": true,
+  "criteria": {
+    "timeout_rate": true,
+    "timeout_duration": true,
+    "persistence": true,
+    "readiness_within_60s": true,
+    "baseline": true,
+    "recovery": true,
+    "controls": true,
+    "liveness": true
+  },
+  "windows": {
+    "baseline": [
+      20259.350768853,
+      20319.351653818
+    ],
+    "fault": [
+      20320.098304706,
+      20380.098471099
+    ],
+    "drain": [
+      20381.310188519,
+      20396.310336867
+    ],
+    "recovery": [
+      20396.311753363,
+      20456.312210466
+    ]
+  },
+  "fault_bounds": {
+    "stable_start": 20330.096821576,
+    "removal": [
+      20379.874318244,
+      20380.139466231998
+    ],
+    "clock_offset": [
+      -0.2451225449985941,
+      0.020025442998303333
+    ],
+    "uncertainty_seconds": 0.2651479879968974
+  },
+  "phases": {
+    "baseline": {
+      "control_catalog": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.025137710999842966,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "control_orders": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.02806755599885946,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "create": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.05041694800092955,
+        "transport_errors": 0,
+        "status_codes": {
+          "201": 60
+        }
+      },
+      "live_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.025242325002182042,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "live_orders": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.034605749999172986,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.03941966600177693,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_orders": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.04705837899746257,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      }
+    },
+    "fault": {
+      "control_catalog": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.019338883997988887,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "control_orders": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.03012263400160009,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "create": {
+        "attempts": 60,
+        "successes": 4,
+        "success_rate": 0.06666666666666667,
+        "p95_seconds": 5.034472129998903,
+        "transport_errors": 0,
+        "status_codes": {
+          "201": 4,
+          "503": 1,
+          "504": 55
+        }
+      },
+      "live_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.018351357997744344,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "live_orders": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.02791125200019451,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.028346947001409717,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_orders": {
+        "attempts": 12,
+        "successes": 0,
+        "success_rate": 0.0,
+        "p95_seconds": 2.0515063849998114,
+        "transport_errors": 0,
+        "status_codes": {
+          "503": 12
+        }
+      }
+    },
+    "drain": {
+      "control_catalog": {
+        "attempts": 15,
+        "successes": 15,
+        "success_rate": 1.0,
+        "p95_seconds": 0.018592361000628443,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 15
+        }
+      },
+      "control_orders": {
+        "attempts": 15,
+        "successes": 15,
+        "success_rate": 1.0,
+        "p95_seconds": 0.01997797700096271,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 15
+        }
+      },
+      "create": {
+        "attempts": 0,
+        "successes": 0,
+        "success_rate": null,
+        "p95_seconds": null,
+        "transport_errors": 0,
+        "status_codes": {}
+      },
+      "live_catalog": {
+        "attempts": 3,
+        "successes": 3,
+        "success_rate": 1.0,
+        "p95_seconds": 0.010884212999371812,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 3
+        }
+      },
+      "live_orders": {
+        "attempts": 3,
+        "successes": 3,
+        "success_rate": 1.0,
+        "p95_seconds": 0.01331881800069823,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 3
+        }
+      },
+      "ready_catalog": {
+        "attempts": 3,
+        "successes": 3,
+        "success_rate": 1.0,
+        "p95_seconds": 0.019431531000009272,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 3
+        }
+      },
+      "ready_orders": {
+        "attempts": 3,
+        "successes": 3,
+        "success_rate": 1.0,
+        "p95_seconds": 0.027073572000517743,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 3
+        }
+      }
+    },
+    "recovery": {
+      "control_catalog": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.02571973899830482,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "control_orders": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.02428273600162356,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 60
+        }
+      },
+      "create": {
+        "attempts": 60,
+        "successes": 60,
+        "success_rate": 1.0,
+        "p95_seconds": 0.051148227001249325,
+        "transport_errors": 0,
+        "status_codes": {
+          "201": 60
+        }
+      },
+      "live_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.024255358999653254,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "live_orders": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.03264649300035671,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_catalog": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.0394829889992252,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      },
+      "ready_orders": {
+        "attempts": 12,
+        "successes": 12,
+        "success_rate": 1.0,
+        "p95_seconds": 0.052467628000158584,
+        "transport_errors": 0,
+        "status_codes": {
+          "200": 12
+        }
+      }
+    }
+  },
+  "transitions": [
+    "283e6414-5102-4423-804f-40dcaff7d60f",
+    "30b5a3ca-f45d-4bee-9919-d1bec09f6efe",
+    "a6810707-1139-4516-ace9-2b04597d3702",
+    "aa7b6396-e7f4-494a-a278-856192a17d4e",
+    "d70a3388-8c4d-4c18-9a45-5a17c325bc56"
+  ],
+  "total_attempts": 726,
+  "fault": {
+    "eligible_attempts": 45,
+    "catalog_timeouts": 45,
+    "timeouts_in_duration": 45,
+    "timeout_rate": 1.0,
+    "duration_rate": 1.0
+  },
+  "persistence": {
+    "before": 1,
+    "after": 125,
+    "created_201": 124,
+    "unexplained_delta": 0,
+    "identifiers_match": true
+  },
+  "readiness_recovery_seconds": [
+    1.1881451740009652,
+    1.4532931619978626
+  ],
+  "metrics_coverage": {
+    "catalog": {
+      "baseline": 12,
+      "fault": 12,
+      "drain": 3,
+      "recovery": 12
+    },
+    "orders": {
+      "baseline": 12,
+      "fault": 12,
+      "drain": 3,
+      "recovery": 12
+    }
+  },
+  "correlation": {
+    "fault_requests_correlated": 60,
+    "timeout_requests_correlated": 55,
+    "examples": [
+      {
+        "request_id": "27fcf8e5-13e0-495e-865e-5d622a6251b2",
+        "trace_id": "00c8863917feb89a0fe0b332b7258c13"
+      },
+      {
+        "request_id": "e54a1208-c702-4058-9b43-b57e398af721",
+        "trace_id": "3ef8484fb07c0a8a1a3104a302af8290"
+      },
+      {
+        "request_id": "5f8af1d5-2481-4504-94c1-b03de5d965a9",
+        "trace_id": "daf0527bf047f0cad4dd31e6076c89e2"
+      }
+    ],
+    "recognized_spans": 5103,
+    "server_catalog_span_required": false
+  }
+}

@@ -286,6 +286,7 @@ class Evidence:
         self.text("logs/chaos-net.log")
         correlated = []
         timeout_correlated = 0
+        timeout_requests = 0
         for request in rows:
             if request["operation"] != "create" or request["phase"] != "fault" or request.get("status_code") is None:
                 continue
@@ -296,14 +297,18 @@ class Evidence:
                     continue
                 related = [span for span in spans if span["trace_id"] == trace_id]
                 business_ids = {span["span_id"] for span in related if span["name"] == "orders.order.create"}
+                business_error_ids = {span["span_id"] for span in related if span["name"] == "orders.order.create" and span["status"] == "error"}
                 timed_out = request["status_code"] == 504 and request.get("error_code") == "catalog_timeout"
+                timeout_requests += timed_out
                 if any(span["kind"] == "client" and span["http_catalog"] and span["parent_id"] in business_ids
-                       and (not timed_out or span["status"] == "error") for span in related):
+                       and (not timed_out or span["parent_id"] in business_error_ids) for span in related):
                     correlated.append({"request_id": request["request_id"], "trace_id": trace_id})
                     timeout_correlated += timed_out
                     break
         if not correlated:
             self.issue("fault_trace_correlation_missing")
+        if timeout_requests and not timeout_correlated:
+            self.issue("fault_timeout_trace_correlation_missing")
         return {"fault_requests_correlated": len(correlated), "timeout_requests_correlated": timeout_correlated, "examples": correlated[:3],
                 "recognized_spans": len(spans), "server_catalog_span_required": False}
 

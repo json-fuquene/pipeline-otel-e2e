@@ -184,6 +184,14 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(result["correlation"]["timeout_requests_correlated"], 1)
         self.assertFalse(result["correlation"]["server_catalog_span_required"])
 
+    def test_timeout_correlates_through_error_business_span(self):
+        path = self.root / "logs/otel-collector.log"
+        content = path.read_text().replace("Name : GET\n    Kind : Client\n    Status code : Error", "Name : GET\n    Kind : Client\n    Status code : Unset")
+        path.write_text(content)
+        result = self.analyze()
+        self.assertTrue(result["integrity"]["complete"])
+        self.assertEqual(result["correlation"]["timeout_requests_correlated"], 1)
+
     def test_missing_trace_context_cannot_confirm_hypothesis(self):
         path = self.root / "logs/orders.log"
         path.write_text(path.read_text().replace('"' + "a" * 32 + '"', "null"))

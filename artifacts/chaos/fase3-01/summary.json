@@ -382,20 +382,20 @@
     }
   },
   "correlation": {
-    "fault_requests_correlated": 4,
-    "timeout_requests_correlated": 0,
+    "fault_requests_correlated": 60,
+    "timeout_requests_correlated": 56,
     "examples": [
       {
         "request_id": "862273db-be0e-4249-a8f8-cde459883ebf",
         "trace_id": "57bdb453c9cce4992bd89cca4ada9ebe"
       },
       {
-        "request_id": "0c31fbb9-d793-4ec7-953f-ebeb8b99569f",
-        "trace_id": "070cac965b80077cd8deff0bd3a6796b"
+        "request_id": "158ea4a2-f311-444a-b2ab-563f60204a85",
+        "trace_id": "aa68f28baeff7f8dea2345fb47d5d9d5"
       },
       {
-        "request_id": "ffe04694-6a14-4969-8814-35374dad27ba",
-        "trace_id": "8e131b135bb618a2fe97a845552486c2"
+        "request_id": "ba2e8158-8891-4f6d-868e-f63e178e00be",
+        "trace_id": "6caf915af1006daf948074b10a030ea3"
       }
     ],
     "recognized_spans": 5100,

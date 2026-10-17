@@ -141,9 +141,9 @@ python3 scripts/chaos/run.py down --run-id ensayo-01
 
 Las nuevas corridas usan formato de evidencia 2. Si se preparó un laboratorio antes de la fase 3, conservar sus datos y preparar otro identificador para obtener telemetría detallada. No convertir los archivos antiguos en evidencia nueva cambiando su versión.
 
-Se conservan metadatos saneados, eventos, solicitudes, UUID de pedidos antes/después, métricas crudas cada cinco segundos y logs acotados en `artifacts/chaos/<run-id>/`, incluso ante abortos cuando la captura siga disponible. El laboratorio usa un Collector propio con `debug` detallado; espera doce segundos adicionales para exportación antes de capturar logs, sin garantizar que toda traza llegue. El estado `executed` indica que terminó la secuencia; la confirmación operativa sigue pendiente. No publicar `.chaos/` ni mostrar configuraciones interpoladas que contengan credenciales.
+Se conservan metadatos saneados, eventos, solicitudes, UUID de pedidos antes/después, métricas crudas cada cinco segundos y logs acotados en `artifacts/chaos/<run-id>/`, incluso ante abortos cuando la captura siga disponible. El laboratorio usa un Collector propio con `debug` detallado; espera doce segundos adicionales para exportación antes de capturar logs, sin garantizar que toda traza llegue. La corrida `fase4-01` terminó `executed`; `status` confirmó supervisor `clean`, sin filtros, y `down` dejó el proyecto `stopped`, preservando volumen y evidencia. El análisis correlacionó 45/45 timeouts elegibles con sus logs y spans, y aceptó H1 para las condiciones ejecutadas. No publicar `.chaos/` ni mostrar configuraciones interpoladas que contengan credenciales.
 
-Después de una corrida, el runner calcula `summary.json`. También se puede regenerar y verificar sin Docker, red ni servicios. Estas operaciones normalmente tardan unos segundos:
+Después de una corrida, el runner calcula `summary.json`. Para recalcularlo o verificarlo, el directorio de evidencia de esa corrida debe existir; sustituye el ejemplo por el identificador real, no por el texto literal `ID`. Si falta el directorio, primero hay que completar `prepare` y `run`. El análisis y la verificación no inician el laboratorio ni crean la evidencia. Estas operaciones normalmente tardan unos segundos y no consultan Docker, red ni servicios:
 
 ```sh
 python3 scripts/chaos/analyze.py artifacts/chaos/ensayo-01
@@ -152,9 +152,9 @@ python3 scripts/chaos/check_evidence.py artifacts/chaos/ensayo-01
 
 `analyze.py` escribe solamente `summary.json`; `check_evidence.py` es de solo lectura y compara el resumen existente con el cálculo desde los archivos originales. El verificador devuelve código cero si la evidencia está completa, incluso cuando la hipótesis queda refutada, y uno si faltan archivos, muestras, correlación o limpieza comprobada. Si no existe resumen todavía, devuelve el cálculo en consola sin crearlo. La salida distingue integridad, criterios y clasificación de H1; los datos sintéticos nunca validan una corrida real.
 
-Revisar especialmente `integrity.errors`, `hypothesis`, `fault`, `persistence`, `metrics_coverage` y `correlation`. Los indicadores se separan por operación y fase; healthchecks no se mezclan con disponibilidad de negocio. Los tiempos entre host y contenedor se comparan mediante límites de incertidumbre, y no por resta directa de sus relojes. El parser del exportador debug reconoce un formato acotado: ausencia de contexto de traza o formatos no reconocidos mantienen el resultado inconcluso. Se exige al menos una correlación de una creación durante el fallo, sin suponer cobertura de todas las trazas.
+Revisar especialmente `integrity.errors`, `hypothesis`, `fault`, `persistence`, `metrics_coverage` y `correlation`. En `fase4-01`, las 45 solicitudes elegibles con `504 catalog_timeout` quedaron correlacionadas por `request_id` con su log y por `trace_id` con el span de negocio en error y su span HTTP cliente hijo hacia catálogo. La integridad quedó completa y H1 aceptada; los pedidos persistidos se conciliaron (conteo de 1 a 125) y readiness se recuperó en 1,19–1,46 s. El informe [results.md](artifacts/chaos/fase4-01/results.md) presenta las mediciones y la evidencia seleccionada.
 
-El informe Markdown, las capturas de pantalla manuales y el PDF siguen pendientes de las fases posteriores.
+La fase 4 se ejecutó y H1 quedó aceptada para las condiciones medidas. El informe Markdown incorpora los resultados, la captura de inyección y el diagnóstico visual del primer cálculo, marcado como intermedio y reemplazado.
 
 ## Prueba de observabilidad en ECS
 
