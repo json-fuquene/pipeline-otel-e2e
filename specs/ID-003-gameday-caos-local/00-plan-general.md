@@ -8,13 +8,13 @@
 | **Título** | Game Day de caos local |
 | **Sprint / iteración** | No documentado |
 | **Prioridad** | Media |
-| **Estado global** | En implementación: diseño completado; fase 2 implementada sin validar |
+| **Estado global** | En implementación: diseño completado; fases 2 y 3 implementadas sin validar |
 | **Sistemas y repositorios afectados** | Proyecto actual; laboratorio Compose local independiente |
 | **Iniciativas relacionadas** | ID-001 e ID-002 como base técnica |
 
 ## Resumen de estado
 
-La fase 1 queda completada mediante diseño documental y revisión estática. La fase 2 entrega manifiesto aislado, CLI, supervisor independiente y carga, con 50 pruebas unitarias aprobadas en 1,008 s y validación estática de Compose sin daemon. Su estado es Implementada sin validar: no se han ejecutado builds, servicios ni experimentos. Las fases 3–5, la validación operativa, los resultados reales, las capturas manuales y el PDF permanecen pendientes. El Gate 3 de fase 1 cierra exclusivamente el diseño; el de fase 2 conserva los pendientes operativos.
+La fase 1 queda completada mediante diseño documental y revisión estática. La fase 2 entrega manifiesto aislado, CLI, supervisor independiente y carga. La fase 3 añade Collector detallado exclusivo, captura Prometheus, correlación y análisis offline. La suite conjunta aprueba 90 pruebas unitarias en 2,122 s; también se verifican sintaxis AST de once archivos, ayuda CLI y Compose normalizado sin daemon. Las fases 2 y 3 permanecen Implementadas sin validar: no se han ejecutado builds, servicios ni experimentos. Las fases 4–5, los resultados reales, las capturas manuales y el PDF permanecen pendientes. Los Gates 3 de fases 2 y 3 conservan los pendientes operativos.
 
 ## Enfoque técnico
 
@@ -32,23 +32,23 @@ flowchart LR
   O --> P[PostgreSQL aislado]
   C --> P
   W[Temporizador independiente] --> F
-  O --> T[Collector basic; detailed pendiente fase 3]
+  O --> T[Collector detailed exclusivo del laboratorio]
   C --> T
   T --> A[Archivos de evidencia]
 ```
 
-La carga implementada cubre creación de pedidos y dos lecturas de control. El supervisor PID 1 recibe órdenes mediante un socket UNIX interno, mantiene TTL de sesenta segundos y concesión de diez segundos, sin socket Docker montado. La fase 2 aporta solicitudes, eventos, instantáneas de pedidos y logs básicos con el Collector actual en `basic`; la captura avanzada, el modo `detailed` y el análisis reproducible continúan en fase 3, sin introducir Jaeger, Grafana ni Prometheus servidor. La clasificación se limita a IPv4 TCP sin fragmentación y cabecera IPv4 de veinte bytes; se rechaza IPv6. Los eventos IPC acotan el tiempo del host antes/después de consultar al supervisor para distinguir los dominios de reloj.
+La carga implementada cubre creación de pedidos y dos lecturas de control. El supervisor PID 1 recibe órdenes mediante un socket UNIX interno, mantiene TTL de sesenta segundos y concesión de diez segundos, sin socket Docker montado. La fase 3 añade métricas crudas cada cinco segundos por servicio, logs acotados y Collector `detailed` exclusivo, con batch de un segundo y margen adicional de exportación de doce segundos. No se presupone entrega completa: las trazas requeridas ausentes hacen inconclusa la evaluación. El análisis offline valida evidencia y calcula indicadores sin Jaeger, Grafana ni Prometheus servidor. La clasificación se limita a IPv4 TCP sin fragmentación y cabecera IPv4 de veinte bytes; se rechaza IPv6. Los límites IPC del host y el registro de retirada del supervisor permiten separar dominios monotónicos con incertidumbre conservadora.
 
 ## Contratos e interfaces afectados
 
-El laboratorio y la CLI están implementados en fase 2; las interfaces de análisis y el conjunto completo de evidencia continúan pendientes de fases 3 y 5.
+El laboratorio, CLI, captura y análisis están implementados en fases 2 y 3; el informe de resultados continúa pendiente de fase 5. La operación y evidencia real siguen pendientes.
 
 | Elemento | Ubicación | Cambio | Compatibilidad hacia atrás |
 |---|---|---|---|
 | Laboratorio | `compose.chaos.yaml` | Topología aislada y puertos loopback dinámicos | Compatible; Compose habitual intacto |
 | Operación | `scripts/chaos/run.py` | Subcomandos prepare, run, rollback, status y down con `--run-id` | Interfaz nueva |
-| Análisis | `scripts/chaos/check_evidence.py` y `scripts/chaos/report.py` | Verificar evidencia y generar results.md desde directorio de corrida | Interfaces nuevas |
-| Evidencia | `artifacts/chaos/<run-id>/` | Metadatos saneados, eventos, solicitudes y logs básicos disponibles; summary.json, métricas avanzadas y results.md pendientes | Formato nuevo |
+| Análisis | `scripts/chaos/check_evidence.py`, `analyze.py` y futuro `report.py` | Verificador JSON de solo lectura; analizador genera summary.json; results.md reservado a fase 5 | Interfaces nuevas; análisis offline |
+| Evidencia | `artifacts/chaos/<run-id>/` | Formato versión 2: metadatos saneados, eventos, solicitudes, métricas crudas indexadas, logs y summary.json; results.md pendiente | Corridas de formato anterior no se aceptan como evidencia completa sin datos requeridos |
 | Contratos de negocio | APIs y PostgreSQL existentes | Sin cambios de respuesta, migración o timeout | Compatible |
 
 `run-id` será un identificador de 1–32 caracteres ASCII minúsculos, dígitos y guiones, empezando y terminando con carácter alfanumérico. Se rechazará reutilizar un identificador existente para preparar una nueva corrida. Las herramientas verificarán identidad del proyecto y etiquetas de ejecución antes de operar.
@@ -61,7 +61,7 @@ Un error HTTP o de transporte en un GET de control o un fallo de liveness activa
 
 La retirada con infraestructura operativa debe comprobarse antes de cinco segundos después del TTL. El supervisor independiente usa concesión de diez segundos; si desaparece la renovación del runner, debe limpiar antes de quince segundos desde la última renovación. El fallo del auxiliar o daemon obliga a declarar resultado inconcluso y a comprobar limpieza antes de reutilizar el laboratorio. Estos plazos son criterios a validar, no capacidades demostradas.
 
-Los códigos `error.code` proceden de las respuestas del generador; los logs actuales aportan request_id, estado HTTP, duración y contexto de traza cuando existe. No se presupone error.code en los logs ni span servidor de catálogo cuando la solicitud no llega. Los datos de fase 1 validan la formulación del diseño; la captura y cálculo reproducible se implementan en fase 3.
+Los códigos `error.code` proceden de las respuestas del generador; los logs actuales aportan request_id, estado HTTP, duración y contexto de traza cuando existe. No se presupone error.code en los logs ni span servidor de catálogo cuando la solicitud no llega. La fase 3 verifica correlación de logs con span cliente y padre de negocio; un formato debug desconocido produce evidencia incompleta. La salida cero del verificador indica integridad, incluso con hipótesis refutada; la salida uno señala evidencia incompleta o inconsistente. Los fixtures sintéticos viven solo en temporales y nunca validan una corrida real.
 
 ## Fases de ejecución
 
@@ -69,7 +69,7 @@ Los códigos `error.code` proceden de las respuestas del generador; los logs act
 |---|---|---|---|---|---|
 | Completada | 1 | [Diseño](01-diseno-gameday.md) | RF-001, RF-002, RF-003; RNF-001, RNF-002, RNF-004 | Game Day | Hipótesis, SLI, fichas, aborto y reversión revisados documentalmente |
 | Implementada sin validar | 2 | [Harness](02-harness-caos-local.md) | RF-002, RF-004; RNF-001, RNF-002, RNF-003, RNF-004 | Compose y auxiliar | Manifiesto, CLI, supervisor y carga implementados; operación pendiente |
-| Pendiente | 3 | [Observabilidad y pruebas](03-observabilidad-y-pruebas-locales.md) | RF-003; RNF-003, RNF-004, RNF-005 | Captura y análisis | Evidencia correlacionable y pruebas locales |
+| Implementada sin validar | 3 | [Observabilidad y pruebas](03-observabilidad-y-pruebas-locales.md) | RF-003; RNF-003, RNF-004, RNF-005 | Captura y análisis | Captura, correlación y análisis offline implementados; corrida real pendiente |
 | Pendiente | 4 | [Ejecución y análisis](04-ejecucion-y-analisis.md) | RF-004, RF-005, RF-006, RF-007; RNF-001, RNF-002, RNF-003, RNF-004, RNF-005 | Laboratorio local | Una corrida real y recuperación confirmadas |
 | Pendiente | 5 | [Entregable](05-entregable-gameday.md) | RF-008, RF-009; RNF-004, RNF-005 | Informe | Markdown respaldado por evidencia; PDF diferido |
 
@@ -79,7 +79,7 @@ Los códigos `error.code` proceden de las respuestas del generador; los logs act
 |---|---|---|
 | Cumplido y validado documentalmente: formulación de hipótesis | RF-001 | 1 |
 | Diseño validado; harness implementado sin validación operativa | RF-002 | 1, 2 |
-| Definición validada en fase 1; captura y verificación pendientes | RF-003 | 1, 3 |
+| Definición validada; captura y verificación implementadas sin validación operativa | RF-003 | 1, 3 |
 | Harness implementado; ejecución y confirmación pendientes | RF-004 | 2, 4 |
 | Pendiente | RF-005 | 4 |
 | Pendiente | RF-006 | 4 |
@@ -88,9 +88,9 @@ Los códigos `error.code` proceden de las respuestas del generador; los logs act
 | Diferido; no cumplido en entrega actual | RF-009 | 5 |
 | Aislamiento implementado; pendiente de validación operativa | RNF-001 | 1, 2, 4 |
 | Supervisor y limpieza implementados; pendiente de validación operativa | RNF-002 | 1, 2, 4 |
-| Credenciales y volumen aislados implementados; validación operativa y captura avanzada pendientes | RNF-003 | 2, 3, 4 |
-| CLI y artefactos básicos implementados; análisis reproducible y corrida pendientes | RNF-004 | 1–5 |
-| Procedimiento documentado; ejecución pendiente | RNF-005 | 3–5 |
+| Credenciales, volumen y captura aislados implementados; validación operativa pendiente | RNF-003 | 2, 3, 4 |
+| CLI, captura y análisis reproducible implementados; corrida pendiente | RNF-004 | 1–5 |
+| Procedimiento y pruebas locales implementados; ejecución operativa pendiente | RNF-005 | 3–5 |
 
 ## Dependencias y orden de ejecución
 
@@ -133,7 +133,7 @@ La validación estática cierra exclusivamente la fase 1, cuyo entregable es dis
 | Aprobada para fase 2 | Estática Compose | Sintaxis e interpolación del manifiesto con valores ficticios, sin daemon | `config --quiet`; comando completo en fase 2 |
 | Pendiente de confirmación | Funcional / operativa | Build, baseline, inyección y recuperación reales | Manual; comandos de fase 4 |
 | Pendiente de confirmación | Reversión | TTL, aborto, interrupción y ausencia de reglas propias | Manual; fase 2 |
-| Pendiente | Evidencia | Archivos, conteos y correlación | `python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` después de implementar |
+| Aprobada localmente; operación pendiente | Evidencia | Integridad, indicadores y correlación en fixtures temporales; suite conjunta de 90 pruebas en 2,122 s; evidencia real pendiente | Unitarias; luego `python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` y `python3 scripts/chaos/analyze.py artifacts/chaos/ID` sobre corrida real |
 
 ## Criterios de cierre del plan
 

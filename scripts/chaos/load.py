@@ -22,6 +22,7 @@ class Load:
         self.abort = threading.Event()
         self.lock = threading.Lock()
         self.reason = None
+        self.current_phase = "preflight"
 
     def fail(self, reason):
         with self.lock:
@@ -67,6 +68,7 @@ class Load:
         return row
 
     def phase(self, name, seconds, tick=lambda: None, create=True):
+        self.current_phase = name
         urls = self.metadata["urls"]
         operations = [
             ("control_catalog", urls["catalog"] + "/products/" + self.metadata["product_id"], None),

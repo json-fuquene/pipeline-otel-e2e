@@ -6,9 +6,9 @@
 |---|---|
 | **Plan** | ID-003 — Game Day de caos local |
 | **Fase** | 03 — Observabilidad y pruebas locales |
-| **Estado** | Pendiente |
+| **Estado** | Implementada sin validar |
 | **Requisitos que cubre** | RF-003, RNF-003, RNF-004, RNF-005 |
-| **Sistemas y repositorios** | Telemetría local, scripts futuros de caos y pruebas unitarias |
+| **Sistemas y repositorios** | Telemetría local, scripts de caos y pruebas unitarias |
 | **Dependencias previas** | Diseño de fase 01; contrato de artefactos de fase 02; fase 02 necesaria para validación operativa |
 | **Habilita a** | Fases 04 y 05 |
 
@@ -26,14 +26,14 @@ Las APIs ya exponen métricas Prometheus, logs JSON y trazas OTLP; el Collector 
 
 | Ubicación | Cambio | Requisito asociado |
 |---|---|---|
-| Configuración específica del Collector del laboratorio | Activar salida detallada y conservarla por ejecución | RF-003, RNF-004 |
-| `scripts/chaos/check_evidence.py` y analizador compartido futuro | Verificar integridad y calcular indicadores desde artefactos | RF-003, RNF-004 |
+| `docker/otel-collector/chaos.yaml` y captura del laboratorio | Salida detallada, métricas crudas y logs acotados por ejecución | RF-003, RNF-004 |
+| `scripts/chaos/check_evidence.py`, `analyze.py` y módulos compartidos | Verificar integridad y calcular indicadores offline desde artefactos | RF-003, RNF-004 |
 | `tests/chaos/` | Pruebas unitarias aisladas de análisis, carga y limpieza | RNF-003, RNF-004, RNF-005 |
 
 ### No incluido en esta fase
 
 - Instalar Prometheus, Grafana o Jaeger; consultar AWS o APIs remotas.
-- Ejecutar integración, E2E, builds o servicios por iniciativa de la implementación documental.
+- Ejecutar integración, E2E, builds o servicios durante esta implementación.
 - Dar por verificada una hipótesis a partir de pruebas con datos sintéticos.
 
 ## Diseño
@@ -42,15 +42,19 @@ Los artefactos vivirán bajo `artifacts/chaos/<run-id>/` y se conservarán aun c
 
 | Artefacto | Contrato mínimo |
 |---|---|
-| `metadata.json` | Identificador, versión del formato, configuración no sensible, imágenes utilizadas, semilla e identificadores del producto y pedido de control, ventanas UTC y duración monotónica |
+| `metadata.json` | Identificador, `format_version: 2`, `evidence_kind: measured` o `synthetic`, configuración no sensible, imágenes utilizadas, semilla e identificadores del producto y pedido de control, ventanas UTC y duración monotónica |
 | `requests.jsonl` | Una línea por intento con UUID de solicitud, operación, ventana de inicio, inicio/fin UTC, duración monotónica, estado HTTP o error de transporte, `error.code` y UUID del recurso exitoso si existe; sin cuerpos ni credenciales |
 | `events.jsonl` | Preparación, activación, vencimiento, aborto, retirada y verificación; tiempo UTC y monotónico; destinatario IP/puerto y causa |
-| `metrics/` | Muestras Prometheus de catálogo y pedidos cada 5 s con fecha y ventana; fallos de muestreo explícitos |
-| `logs/` | Logs JSON de ambas APIs y salida detallada del Collector, acotados temporalmente al ensayo |
+| `metrics/` y `metrics/index.jsonl` | Muestras Prometheus crudas de catálogo y pedidos cada 5 s; índice con UTC, monotónico del host, fase, HTTP, archivo, hash SHA-256 y errores |
+| `logs/` | stdout y stderr combinados de ambas APIs, auxiliar y Collector; JSON y salida detallada acotados temporalmente al ensayo |
 | `summary.json` | Indicadores derivados, número de muestras, cobertura de evidencia, hipótesis aceptada/refutada/inconclusa y motivos |
 | `results.md` | Informe legible generado en fase 05 a partir de evidencia validada |
 
-El registro canónico del SLI será `requests.jsonl`, porque permite asociar solicitudes a ventanas y usar la misma definición entre servicios. Prometheus aportará confirmación agregada; los nombres de las series se descubrirán de la exposición real y se registrarán en metadatos, sin fijar nombres inventados de instrumentación automática. Los tiempos se medirán con reloj monotónico; UTC servirá para correlación.
+El registro canónico del SLI es `requests.jsonl`, porque permite asociar solicitudes a ventanas y usar la misma definición entre servicios. Prometheus aporta confirmación agregada; los nombres de las series se descubren de la exposición real y se registran en metadatos, sin fijar nombres inventados de instrumentación automática. La captura utiliza un hilo por servicio; un error de captura activa aborto, queda registrado y no se disimula como muestra válida.
+
+La verificación exige secuencias contiguas por servicio, SHA-256 coincidente, al menos `max(1, ceil(duración/5)-2)` muestras por ventana y separaciones máximas de diez segundos incluyendo los bordes. El reconocimiento de muestras numéricas usa un perfil acotado del formato de exposición; los formatos no reconocidos quedan incompletos. No se exige un nombre específico de instrumentación.
+
+Los tiempos usan el dominio monotónico declarado. UTC sirve para correlación, no para restar relojes de procesos distintos. Los límites del IPC `host_before`/`host_after` y `removed_monotonic` del supervisor permiten construir límites conservadores de activación y retirada sin asumir que coinciden los relojes de host y contenedor. Los registros de dominio o identidad inconsistentes invalidan evidencia; la incertidumbre no se convierte en una ventana de fallo más amplia.
 
 Se calcularán indicadores por operación y ventana, sin mezclar POST, GET y healthchecks:
 
@@ -58,18 +62,22 @@ Se calcularán indicadores por operación y ventana, sin mezclar POST, GET y hea
 - Éxito de cada GET de control = respuestas `200` / intentos de esa operación.
 - p95 por rango más próximo: ordenar duraciones y seleccionar el elemento `ceil(0,95 × N)` con índice inicial uno. Incluye intentos fallidos y sus timeouts; `N=0` produce indicador no evaluable.
 - Proporción `504 catalog_timeout` = respuestas con ambos valores / intentos de la ventana estable de fallo; debe alcanzar 95 %. Proporción temporal = respuestas `504 catalog_timeout` de 4,5–6,5 s / total de respuestas `504 catalog_timeout` elegibles; debe alcanzar 95 %. Exigir al menos treinta intentos elegibles; un denominador cero no es evaluable.
-- Persistencia indebida = incremento total de pedidos del laboratorio menos creaciones confirmadas con `201`, contrastado con identificadores retornados. Debe ser cero; el pedido sembrado se cuenta en el estado inicial. La comprobación exige exclusividad del laboratorio y lectura paginada de todos sus pedidos antes y después, incluyendo solicitudes en tránsito.
+- Persistencia: el conjunto exacto de UUID de pedidos finales debe coincidir con el conjunto inicial unido a los UUID únicos retornados por creaciones `201`, incluyendo tránsito. No basta comparar cantidades; discrepancias, duplicados o identificadores ausentes impiden aceptar integridad.
 - Recuperación: tiempo desde retirada confirmada hasta primera readiness exitosa de pedidos, con resolución de 5 s, y criterios de éxito/p95 de la ventana de recuperación de 60 s. Readiness no forma parte del SLI de negocio.
 
-Se conservarán por separado las solicitudes que crucen límites de ventanas. Para la ventana estable de fallo se elegirán únicamente las iniciadas al menos diez segundos después de la activación y terminadas antes de la retirada. Un incumplimiento observado se reportará sin eliminar muestras; la ausencia de evidencia necesaria da resultado inconcluso, nunca confirmación. Los errores de transporte y solicitudes pendientes al corte conservan su registro y resultado final; se reportan en las tasas globales y en el grupo de transición cuando no cumplen la ventana elegible.
+Se conservan por separado baseline, fallo estable, drenaje y recuperación, además de los intentos de transición. Baseline y recuperación exigen al menos sesenta creaciones y sesenta intentos por cada lectura de control, 100 % de éxito y p95 inferior a un segundo. La readiness debe recuperarse en sesenta segundos. Para fallo estable se eligen únicamente intentos iniciados al menos diez segundos después de la activación conservadora y terminados antes de la retirada conservadora. Un incumplimiento observado se reporta sin eliminar muestras; la ausencia de evidencia necesaria da resultado inconcluso, nunca confirmación. Los errores de transporte y solicitudes pendientes al corte conservan su registro y resultado final; permanecen visibles en tasas globales y transición.
 
 Para E2 se diseñan tasa de creaciones exitosas >=99 %, p95 <2 s y muestras de CPU de catálogo cada 5 s; spans de catálogo y de su cliente permiten localizar la degradación. Para E3 se diseñan los indicadores de timeout, controles, persistencia y recuperación de E1, reduciendo solo la duración de fallo a 30 s; se exige al menos diez intentos elegibles. CPU y pérdida efectiva deberán demostrarse en caso de ejecutar esos diseños, pero no se implementarán recolectores ni ejecuciones adicionales en este alcance.
 
-La configuración propia del laboratorio usará `exporters.debug.verbosity: detailed`; este nivel está documentado en la [guía oficial del Collector](https://opentelemetry.io/docs/collector/troubleshooting/). La configuración general existente se preservará. El archivo detallado debe permitir seguir una creación mediante `X-Request-ID`, logs y traza. Se exigirá evidencia del span cliente HTTP de pedidos y del error propagado; no se exigirá span servidor de catálogo cuando la inyección impida que la solicitud llegue. No se considerará ausencia de ese span como prueba suficiente de la inyección.
+La configuración propia del laboratorio usa `exporters.debug.verbosity: detailed` y batch local de un segundo. La [guía oficial del Collector](https://opentelemetry.io/docs/collector/troubleshooting/) documenta la inspección con salida detallada; no se presupone que garantice entrega completa ni se añaden parámetros de muestreo sin respaldo documental. La configuración general existente se preserva. Los logs Docker se acotan con `--since` al inicio y `--until` al final de la captura; se concede un margen adicional de exportación de doce segundos antes de recopilar el Collector. La falta de trazas requeridas produce evidencia incompleta e hipótesis inconclusa.
 
-Las pruebas unitarias usarán fixtures sintéticos identificados como tales, reloj simulado y adaptadores locales simulados. Cubrirán clasificación temporal, p95, denominadores, resultados incompletos, transporte fallido, persistencia discrepante, destinos cambiantes, temporizador, interrupción y limpieza repetida. No harán llamadas HTTP, Docker ni accesos externos. Los fixtures no se guardarán como resultados reales.
+La correlación exige al menos una creación de la fase de fallo con log JSON de pedidos cuyo `request_id`, estado y `trace_id` coincidan, más un span cliente HTTP hacia catálogo y su relación padre con `orders.order.create`. Para un `504 catalog_timeout`, el span cliente debe registrar estado de error. Una creación exitosa también puede aportar correlación para una hipótesis refutada. No se exige correlacionar todas las solicitudes ni un span servidor de catálogo cuando la inyección impide la recepción. El parser de debug admite el formato textual acotado cubierto por pruebas; otro formato se reporta como incompleto, sin inferir spans ausentes. La ausencia de un span servidor no demuestra por sí sola la inyección.
 
-`python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` será una interfaz futura, solo de lectura: salida cero con estructura suficiente y cálculo consistente; salida distinta de cero con archivos ausentes, formato inválido o inconsistencias. Una hipótesis refutada con datos completos no constituye error estructural. El informe distinguirá integridad de evidencia de resultado de resiliencia.
+Las pruebas unitarias usan fixtures sintéticos identificados como tales, reloj simulado y adaptadores locales simulados. Cubren clasificación temporal, p95, denominadores, resultados incompletos, transporte fallido, persistencia discrepante, destinos cambiantes, temporizador, interrupción y limpieza repetida. No hacen llamadas HTTP, Docker ni accesos externos. Los fixtures no se guardan como resultados reales: con `evidence_kind: synthetic`, `hypothesis` siempre es inconclusa y `calculated_hypothesis` expone únicamente el resultado del cálculo probado.
+
+`python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` es solo de lectura y emite JSON por stdout: salida cero con evidencia completa y consistente; salida uno con archivos ausentes, formato inválido o inconsistencias. Una hipótesis refutada con datos completos no constituye error estructural. `python3 scripts/chaos/analyze.py artifacts/chaos/ID` realiza el mismo análisis offline y escribe `summary.json`; no consulta servicios ni genera `results.md`, reservado a fase 05. El formato versión 2 es obligatorio; artefactos previos no se presentan como evidencia completa mediante valores inventados.
+
+El verificador no exige `summary.json`, pero lo compara exactamente con el cálculo si ya existe. `analyze.py` escribe únicamente ese archivo y `run` lo genera automáticamente al finalizar. La evidencia exige metadatos permitidos y `cleanup_verified: true`; corridas abortadas, formato anterior o tiempos inconsistentes quedan inconclusos. El runner distingue `evidence_incomplete` cuando la limpieza se verificó de `cleanup_unverified` cuando falta comprobarla.
 
 ### Comportamiento esperado por caso
 
@@ -88,21 +96,22 @@ Las tareas marcadas con `[P]` pueden ejecutarse en paralelo entre sí; las demá
 
 | Estado | # | Tarea | Criterio de aceptación |
 |---|---|---|---|
-| [ ] | 1 | Implementar contrato de artefactos y cálculo de indicadores | Salidas reproducibles desde los mismos registros |
-| [ ] | 2 | `[P]` Preparar configuración detallada y captura acotada | Logs y trazas correlacionables sin exposición de secretos |
-| [ ] | 3 | `[P]` Implementar pruebas y verificador de evidencia | Casos de límite, ausencia y fallo cubiertos sin servicios |
-| [ ] | 4 | Documentar comandos y transferir observación a fase 04 | Separación clara entre checks locales y validación operativa |
+| [x] | 1 | Implementar contrato de artefactos y cálculo de indicadores | Formato versión 2 y análisis offline reproducible |
+| [x] | 2 | `[P]` Preparar configuración detallada y captura acotada | Captura de métricas crudas y configuración propia del Collector |
+| [x] | 3 | `[P]` Implementar pruebas y verificador de evidencia | Casos sintéticos aislados y verificador de solo lectura |
+| [x] | 4 | Documentar comandos y transferir observación a fase 04 | Checks locales separados de operación manual |
 
 ## Validación
 
 | Estado | Tipo | Qué verifica | Cómo se ejecuta | Resultado esperado |
 |---|---|---|---|---|
-| Pendiente | Automatizada futura | RF-003, RNF-004 y RNF-005 | `python3 -m unittest discover -s tests/chaos -p 'test_*.py'` | Pruebas rápidas, aisladas y sin servicios aprobadas |
-| Pendiente | Estática futura | RNF-003 y contrato de evidencia | `python3 scripts/chaos/check_evidence.py artifacts/chaos/ID` sobre fixture identificado | Campos y cálculo consistentes; sin secretos ni resultados presentados como reales |
+| Aprobada: 90 pruebas en 2,122 s | Automatizada local | RF-003, RNF-004 y RNF-005 | `python3 -m unittest discover -s tests/chaos -p 'test_*.py'` | Suite conjunta del harness y evidencia aprobada; fixtures únicamente en directorios temporales |
+| Aprobada | Estática local | RNF-003 y contrato de evidencia | Verificador y analizador sobre fixtures temporales identificados, invocados desde las unitarias; AST de 11 archivos y ayuda CLI | Campos y cálculo consistentes; hipótesis refutada completa con salida cero; evidencia incompleta con salida uno; sintaxis y ayuda correctas |
+| Aprobada | Estática Compose | RNF-003 y aislamiento de configuración | Normalización local sin daemon | Collector del laboratorio montado en solo lectura y puertos en loopback; configuración habitual preservada |
 | Pendiente de confirmación | Funcional / operativa | RF-003 en E1 real | Tras fase 04, ejecutar el verificador sobre su ID y contrastar una solicitud con logs y span cliente | Indicadores reproducibles y trazabilidad de extremo a extremo cuando haya recepción |
 | Pendiente | Reversión | Configuración aislada | Detener el manifiesto autónomo del laboratorio y revisar que no modificó configuración general | Telemetría habitual preservada y artefactos conservados |
 
-Los comandos corresponden a interfaces por implementar. Mientras exista validación funcional pendiente tras implementar, el estado será `Implementada sin validar`; actualmente permanece `Pendiente`.
+Las interfaces están implementadas. La evidencia sintética prueba el analizador y nunca se almacena como corrida real bajo `artifacts/chaos/`. La validación funcional pendiente conserva el estado `Implementada sin validar`.
 
 ## Riesgos y bloqueantes de la fase
 
@@ -114,12 +123,12 @@ Los comandos corresponden a interfaces por implementar. Mientras exista validaci
 
 ## Cierre de la fase
 
-Sección pendiente de ejecutar el Gate 3 de [GUIA-AGENTE.md](../GUIA-AGENTE.md).
+Transferencia documental del Gate 3 de [GUIA-AGENTE.md](../GUIA-AGENTE.md); el cierre operativo permanece pendiente.
 
-- **Resultado obtenido:** No implementado: contrato y validaciones documentados.
-- **Desviaciones respecto al diseño:** Ninguna registrada.
-- **Decisiones tomadas durante la fase:** Ninguna de implementación; decisiones de planificación en la especificación.
-- **Requisitos afectados en su cobertura:** RF-003, RNF-003, RNF-004 y RNF-005 planificados; sin validación real.
-- **Actualizaciones aplicadas a `00-plan-general.md`:** Fase planificada con estado Pendiente.
-- **Actualizaciones aplicadas a `00-especificacion.md`:** Ningún cambio derivado de ejecución.
-- **Pendientes trasladados:** Evidencia real a fase 04 y presentación del informe a fase 05.
+- **Resultado obtenido:** Captura avanzada, Collector aislado, analizador offline y verificador implementados; suite conjunta de 90 pruebas aprobada en 2,122 s, AST de once archivos, ayuda CLI y Compose normalizado correctos; sin corrida real.
+- **Desviaciones respecto al diseño:** Contrato de artefactos versión 2 y límites temporales conservadores explícitos; formatos debug no reconocidos producen evidencia incompleta. Se añade `analyze.py` para producir summary.json y se reserva results.md a fase 05.
+- **Decisiones tomadas durante la fase:** D-013 separa integridad de evidencia y resultado de hipótesis; D-014 explicita dominios temporales conservadores y límites de la salida detallada del Collector.
+- **Requisitos afectados en su cobertura:** RF-003, RNF-003, RNF-004 y RNF-005 con implementación; confirmación operativa pendiente.
+- **Actualizaciones aplicadas a `00-plan-general.md`:** Fase 03 Implementada sin validar; interfaces, evidencia y pendientes actualizados.
+- **Actualizaciones aplicadas a `00-especificacion.md`:** Decisiones técnicas de fase 03 registradas; no se afirma ejecución ni resultado de hipótesis.
+- **Pendientes trasladados:** Confirmar captura real, exportación detallada, correlación, límites temporales y reversión en fase 04; informe y capturas en fase 05.

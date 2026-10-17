@@ -135,6 +135,7 @@ class Supervisor:
         self.deadline = None
         self.lease = None
         self.reason = None
+        self.removed_at = None
         self.last_snapshot = None
         self.used = False
 
@@ -202,6 +203,7 @@ class Supervisor:
             self.event("cleanup_failed", reason=reason)
             raise
         self.state = "clean"
+        self.removed_at = self.clock()
         self.event("removed", reason=reason, snapshot=self.last_snapshot)
         return self.status()
 
@@ -219,6 +221,7 @@ class Supervisor:
         return {
             "state": self.state, "target": self.address, "device": self.device,
             "deadline": self.deadline, "lease": self.lease, "reason": self.reason,
+            "removed_monotonic": self.removed_at,
             "monotonic": self.clock(), "snapshot": snapshot,
         }
 

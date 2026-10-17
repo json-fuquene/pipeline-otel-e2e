@@ -96,7 +96,7 @@ Cada solicitud lleva UUID request_id único, hora UTC, fase y reloj monotónico 
 
 ## Validación
 
-La CLI y las pruebas de esta fase están implementadas. Los comandos operativos siguientes son instrucciones para ejecución manual; no se han ejecutado builds, servicios ni inyecciones durante la implementación. El verificador de evidencia y el generador del informe continúan siendo interfaces futuras de fases 3 y 5.
+La CLI y las pruebas de esta fase están implementadas. Los comandos operativos siguientes son instrucciones para ejecución manual; no se han ejecutado builds, servicios ni inyecciones durante la implementación. El verificador de evidencia se incorpora en fase 3; el generador del informe continúa pendiente de fase 5.
 
 | Estado | Tipo | Qué verifica | Cómo se ejecuta | Resultado esperado |
 |---|---|---|---|---|
@@ -122,9 +122,9 @@ La interrupción abrupta del runner y los errores del auxiliar se validan en cor
 ## Cierre de la fase
 
 - **Resultado obtenido:** Manifiesto, CLI Python estándar, supervisor y generador implementados; 50 pruebas unitarias aprobadas en 1,008 s y configuración Compose validada estáticamente sin daemon. Validación operativa pendiente de confirmación.
-- **Desviaciones respecto al diseño:** La captura avanzada, el verificador de evidencia y el informe no se adelantan desde fases 3 y 5; la fase 2 entrega eventos, solicitudes, instantáneas `orders-before.json`/`orders-after.json` y logs básicos. El Collector reutiliza la configuración actual `basic`; `detailed` queda pendiente de fase 3.
+- **Desviaciones respecto al diseño:** La entrega original de fase 2 aporta eventos, solicitudes, instantáneas `orders-before.json`/`orders-after.json` y logs básicos. La captura avanzada y el verificador se incorporan en fase 3, que sustituye la configuración `basic` del laboratorio por una configuración propia `detailed`; el informe sigue en fase 5.
 - **Decisiones tomadas durante la fase:** D-010, D-011 y D-012 concretan el supervisor PID 1, IPC UNIX, separación de secretos y dominios de reloj; se mantienen D-004, D-005 y D-007.
-- **Requisitos afectados en su cobertura:** RF-002 y RF-004; RNF-001 a RNF-004: harness implementado, validación operativa pendiente; captura y análisis avanzados pendientes de fase 3.
+- **Requisitos afectados en su cobertura:** RF-002 y RF-004; RNF-001 a RNF-004: harness implementado, validación operativa pendiente; captura y análisis avanzados cubiertos por fase 3.
 - **Actualizaciones aplicadas a `00-plan-general.md`:** Fase implementada sin validar, interfaces existentes y futuras diferenciadas y riesgos operativos mantenidos.
 - **Actualizaciones aplicadas a `00-especificacion.md`:** Estado de implementación y decisiones D-010 a D-012 actualizados; requisitos funcionales preservados.
 - **Pendientes trasladados:** Validar aislamiento, selectividad, TTL, interrupción, rollback y persistencia manualmente antes de fase 4; completar observabilidad en fase 3. El Gate 3 queda revisado sobre implementación, pruebas locales y documentación, sin cierre operativo.

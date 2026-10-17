@@ -58,6 +58,18 @@ class DockerSafetyTests(unittest.TestCase):
             Docker({"DOCKER_HOST": "unix:///var/run/docker.sock"}, command).call(["ps"])
         self.assertNotIn("private-password", str(raised.exception))
 
+    def test_log_capture_can_include_both_output_streams(self):
+        calls = []
+
+        def command(args, **kwargs):
+            calls.append(kwargs)
+            return subprocess.CompletedProcess(args, 0, "json-log-from-either-stream")
+
+        client = Docker({"DOCKER_HOST": "unix:///var/run/docker.sock"}, command)
+        self.assertEqual(client.call(["logs", "local-id"], merge_output=True), "json-log-from-either-stream")
+        self.assertEqual(calls[0]["stderr"], subprocess.STDOUT)
+        self.assertNotIn("capture_output", calls[0])
+
     def test_foreign_container_label_blocks_action(self):
         client = Docker({"DOCKER_HOST": "unix:///var/run/docker.sock"})
         client.call = lambda args: "abc" if args[0] == "ps" else '{"io.pipeline.chaos.run":"other"}'
@@ -227,7 +239,7 @@ class LifecycleTests(unittest.TestCase):
     def test_invalid_baseline_never_arms_but_does_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
             run = self.make_run(directory)
-            run.metadata["target"] = "172.22.0.3"
+            run.metadata.update(target="172.22.0.3", format_version=2)
             run.orders = lambda: ["seed"]
             actions = []
 
@@ -236,9 +248,11 @@ class LifecycleTests(unittest.TestCase):
                 return {"target": "172.22.0.3", "state": "idle"}
 
             run.auxiliary = auxiliary
-            with patch("scripts.chaos.run.Load") as loader, patch("builtins.print"):
+            with patch("scripts.chaos.run.Load") as loader, patch("builtins.print"), \
+                    patch("scripts.chaos.run.Telemetry") as telemetry, patch("scripts.chaos.run.time.sleep"):
                 loader.return_value.phase.return_value = []
                 loader.return_value.reason = None
+                telemetry.return_value.stop.return_value = {"catalog": [], "orders": []}
                 with self.assertRaises(SafetyError):
                     run.run()
             self.assertNotIn("arm", actions)

@@ -1,0 +1,16 @@
+{
+  "mode": "local-prebuilt-images",
+  "build_executed": false,
+  "image_pull_policy": "never",
+  "images": {
+    "catalog": "sha256:e57d835849df8965997835392e36055676e3adaeb9af77234ad9d1c692fbaf79",
+    "catalog-migrate": "sha256:4ad52cb995feae8c0c6a911c7ec27247d50e386859a850b7bd4bf88a2195d858",
+    "orders": "sha256:77233984427590d58f99e75472946f24d37202b95e5a91092d75a1c159ab4fbd",
+    "orders-migrate": "sha256:46fd5dcd0a173338a2fb563d98fa84784ed3b54e1ac5ba835900567fab05c893",
+    "chaos-net": "sha256:51003c738cf402f3d3157f2b25cf2236a71c67f471a7ab76b258dcb241baa4ea",
+    "postgres": "sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+    "otel-collector": "sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6"
+  },
+  "supervisor_source_sha256": "314e84967085bc33593228c4984b5694ebba7f1ec200ba59ca1e99f3847d40a2",
+  "supervisor_mount": "read-only current repository source"
+}

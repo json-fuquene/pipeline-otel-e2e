@@ -88,7 +88,7 @@ Las tareas marcadas con `[P]` pueden ejecutarse en paralelo entre sí; las demá
 | Pendiente de confirmación | Entregable diferido | RF-009 | Abrir el PDF que se genere posteriormente y comprobar contenido y 4–5 páginas | Archivo legible con todos los apartados y extensión requerida |
 | Pendiente | Reversión | Preservación de evidencia | Regenerar solo `results.md` desde los mismos artefactos y comparar resultados | Archivos de origen intactos; salida reproducible |
 
-Los comandos son interfaces futuras. Mientras exista validación funcional pendiente tras implementar, el estado será `Implementada sin validar`; la fase actual permanece `Pendiente`. La entrega Markdown no autoriza marcar RF-009 como validado.
+El generador `report.py` es una interfaz futura; el verificador de evidencia y la suite unitaria ya existen en fase 3. Las pruebas de generación del informe se añadirán en esta fase. Mientras exista validación funcional pendiente tras implementar, el estado será `Implementada sin validar`; la fase actual permanece `Pendiente`. La entrega Markdown no autoriza marcar RF-009 como validado.
 
 ## Riesgos y bloqueantes de la fase
 

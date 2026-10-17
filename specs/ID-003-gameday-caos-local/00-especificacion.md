@@ -8,7 +8,7 @@
 | **Título** | Game Day de caos local |
 | **Origen** | [Requerimientos](../../requerimientos.md) y alcance documental acordado |
 | **Sprint / iteración** | No documentado |
-| **Estado de la especificación** | Aprobada; fase 01 completada y fase 02 implementada sin validación operativa |
+| **Estado de la especificación** | Aprobada; fase 01 completada, fases 02 y 03 implementadas sin validación operativa |
 | **Iniciativas relacionadas** | ID-001: servicios y persistencia; ID-002: instrumentación reutilizada |
 
 ## Problema
@@ -21,7 +21,7 @@ El benchmark existente consulta productos y pedidos ya creados, por lo que no ve
 
 Disponer de tres hipótesis falsables y sus experimentos, con impacto acotado, observabilidad y reversión. Una ejecución local posterior permitirá comparar resultados reales antes, durante y después del fallo, identificar una debilidad respaldada por evidencia y proponer una remediación verificable.
 
-La entrega inicial comprendió documentación Markdown. La fase 02 incorpora ahora el harness local y sus pruebas unitarias, sin ejecutar el experimento ni producir evidencia operativa real. El PDF original se mantiene diferido y las capturas se incorporarán manualmente.
+La entrega inicial comprendió documentación Markdown. Las fases 02 y 03 incorporan el harness, captura de telemetría y análisis offline con pruebas unitarias, sin ejecutar el experimento ni producir evidencia operativa real. El PDF original se mantiene diferido y las capturas se incorporarán manualmente.
 
 ## Actores y sistemas involucrados
 
@@ -84,7 +84,7 @@ Los ejemplos de formato de RF-001 no son aclaraciones pendientes. Los enunciados
 
 ## Fuera de alcance
 
-- Arranque de servicios, ejecución de experimentos y creación de imágenes durante la validación automática de la fase 02; quedan para ejecución manual confirmada.
+- Arranque de servicios, ejecución de experimentos y creación de imágenes durante la validación automática de las fases 02 y 03; quedan para ejecución manual confirmada.
 - Ejecución de CPU y partición de red; solo se diseñan sus experimentos.
 - AWS, Kubernetes, servicios externos y despliegues remotos.
 - Instalación de Chaos Monkey, Gremlin o Litmus; su uso es conceptual.
@@ -116,6 +116,8 @@ Los ejemplos de formato de RF-001 no son aclaraciones pendientes. Los enunciados
 | D-010 | Supervisor PID1 con IPC UNIX privado, TTL y concesión independiente del runner; DNS en hilo separado | Temporizador dentro del generador o DNS bloqueante en el bucle de retirada | Mantener reversión ante caída del runner y no bloquearla por resolución | Fase 02 |
 | D-011 | Credenciales propias en .chaos/ID/env con permisos privados, fuera de artefactos y builds | Reutilizar .env o publicar secretos junto a evidencia | Preservación de la instancia cotidiana y separación de evidencia | Fase 02 |
 | D-012 | Registrar límites host_before/host_after de IPC y dominio de cada reloj | Comparar directamente monotónicos de host y contenedor | Evitar asumir un mismo origen temporal en Docker Desktop | Fase 02 |
+| D-013 | Verificador offline de solo lectura; separar integridad, criterios y clasificación; resumen regenerable | Equiparar salida cero con resiliencia confirmada o modificar evidencia al verificar | Una hipótesis refutada es válida con evidencia completa; fixtures nunca acreditan operación | Fase 03 |
+| D-014 | Formato 2, límites temporales conservadores, métricas crudas con hash e índice y parser debug acotado | Mezclar relojes, inventar nombres de métricas o asumir trazas completas | Reproducibilidad y evidencia insuficiente explícita; corridas nuevas para captura detallada | Fase 03 |
 
 ## Referencias
 

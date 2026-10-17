@@ -90,18 +90,19 @@ class Docker:
         for key in ("DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"):
             self.env.pop(key, None)
 
-    def call_local(self, args, timeout=30, env=None):
+    def call_local(self, args, timeout=30, env=None, merge_output=False):
         try:
+            streams = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT} if merge_output else {"capture_output": True}
             result = self.command(
                 args, cwd=ROOT, env=self.env if env is None else env,
-                capture_output=True, text=True, check=True, timeout=timeout,
+                **streams, text=True, check=True, timeout=timeout,
             )
             return result.stdout
         except (OSError, subprocess.SubprocessError) as error:
             raise SafetyError("Docker operation failed; command output withheld to protect credentials.") from error
 
-    def call(self, args, timeout=30, env=None):
-        return self.call_local(["docker", "--host", self.endpoint, *args], timeout, env)
+    def call(self, args, timeout=30, env=None, merge_output=False):
+        return self.call_local(["docker", "--host", self.endpoint, *args], timeout, env, merge_output)
 
     def verify(self, project, run_id, required=None):
         identifiers = self.call([

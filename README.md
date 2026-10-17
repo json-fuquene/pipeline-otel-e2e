@@ -139,7 +139,22 @@ Después de verificar limpieza, detener el proyecto conservando el volumen y los
 python3 scripts/chaos/run.py down --run-id ensayo-01
 ```
 
-Se conservan metadatos saneados, eventos, solicitudes, UUID de pedidos antes/después y logs básicos en `artifacts/chaos/<run-id>/`, incluso ante abortos cuando la captura siga disponible. El estado `executed` indica que terminó la secuencia; la evaluación de la hipótesis sigue pendiente. La captura detallada de telemetría, el verificador de evidencia y el informe pertenecen a fases posteriores. Las capturas de pantalla son manuales y el PDF permanece diferido. No publicar `.chaos/` ni mostrar configuraciones interpoladas que contengan credenciales.
+Las nuevas corridas usan formato de evidencia 2. Si se preparó un laboratorio antes de la fase 3, conservar sus datos y preparar otro identificador para obtener telemetría detallada. No convertir los archivos antiguos en evidencia nueva cambiando su versión.
+
+Se conservan metadatos saneados, eventos, solicitudes, UUID de pedidos antes/después, métricas crudas cada cinco segundos y logs acotados en `artifacts/chaos/<run-id>/`, incluso ante abortos cuando la captura siga disponible. El laboratorio usa un Collector propio con `debug` detallado; espera doce segundos adicionales para exportación antes de capturar logs, sin garantizar que toda traza llegue. El estado `executed` indica que terminó la secuencia; la confirmación operativa sigue pendiente. No publicar `.chaos/` ni mostrar configuraciones interpoladas que contengan credenciales.
+
+Después de una corrida, el runner calcula `summary.json`. También se puede regenerar y verificar sin Docker, red ni servicios. Estas operaciones normalmente tardan unos segundos:
+
+```sh
+python3 scripts/chaos/analyze.py artifacts/chaos/ensayo-01
+python3 scripts/chaos/check_evidence.py artifacts/chaos/ensayo-01
+```
+
+`analyze.py` escribe solamente `summary.json`; `check_evidence.py` es de solo lectura y compara el resumen existente con el cálculo desde los archivos originales. El verificador devuelve código cero si la evidencia está completa, incluso cuando la hipótesis queda refutada, y uno si faltan archivos, muestras, correlación o limpieza comprobada. Si no existe resumen todavía, devuelve el cálculo en consola sin crearlo. La salida distingue integridad, criterios y clasificación de H1; los datos sintéticos nunca validan una corrida real.
+
+Revisar especialmente `integrity.errors`, `hypothesis`, `fault`, `persistence`, `metrics_coverage` y `correlation`. Los indicadores se separan por operación y fase; healthchecks no se mezclan con disponibilidad de negocio. Los tiempos entre host y contenedor se comparan mediante límites de incertidumbre, y no por resta directa de sus relojes. El parser del exportador debug reconoce un formato acotado: ausencia de contexto de traza o formatos no reconocidos mantienen el resultado inconcluso. Se exige al menos una correlación de una creación durante el fallo, sin suponer cobertura de todas las trazas.
+
+El informe Markdown, las capturas de pantalla manuales y el PDF siguen pendientes de las fases posteriores.
 
 ## Prueba de observabilidad en ECS
 

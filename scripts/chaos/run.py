@@ -15,9 +15,11 @@ import time
 try:
     from .common import ROOT, Docker, SafetyError, append_json, http_request, utc, validate_id, write_json
     from .load import Load, require_baseline
+    from .telemetry import Telemetry
 except ImportError:
     from common import ROOT, Docker, SafetyError, append_json, http_request, utc, validate_id, write_json
     from load import Load, require_baseline
+    from telemetry import Telemetry
 
 SERVICES = ("catalog", "orders", "chaos-net", "postgres", "otel-collector", "catalog-migrate", "orders-migrate")
 
@@ -56,7 +58,7 @@ class Run:
             raise SafetyError("Private environment file permissions must be 0600.")
         self.connect()
 
-    def compose(self, *args, timeout=30):
+    def compose(self, *args, timeout=30, merge_output=False):
         environment = {k: v for k, v in self.docker.env.items() if k not in {
             "CHAOS_RUN_ID", "POSTGRES_PASSWORD", "CATALOG_DB_PASSWORD", "ORDERS_DB_PASSWORD",
             "COMPOSE_FILE", "COMPOSE_PROJECT_NAME", "COMPOSE_ENV_FILES", "COMPOSE_PROFILES",
@@ -64,7 +66,7 @@ class Run:
         return self.docker.call([
             "compose", "--env-file", str(self.private / "env"),
             "-f", str(self.root / "compose.chaos.yaml"), "-p", self.project, *args,
-        ], timeout=timeout, env=environment)
+        ], timeout=timeout, env=environment, merge_output=merge_output)
 
     def identities(self, required=SERVICES):
         return self.docker.verify(self.project, self.run_id, required)
@@ -126,7 +128,7 @@ class Run:
                 raise SafetyError("Docker project resources already exist; refusing reuse.")
         self.new_paths()
         self.metadata = {
-            "format_version": 1, "run_id": self.run_id, "project": self.project,
+            "format_version": 2, "evidence_kind": "measured", "run_id": self.run_id, "project": self.project,
             "docker_endpoint": self.docker.endpoint, "created_at": utc(),
             "experiment": "E1", "delay_ms": 6000, "ttl_seconds": 60, "lease_seconds": 10,
             "windows_seconds": {"baseline": 60, "fault": 60, "drain": 15, "recovery": 60},
@@ -188,7 +190,12 @@ class Run:
         for service in ("catalog", "orders", "chaos-net", "otel-collector"):
             if service not in existing:
                 continue
-            logs = self.compose("logs", "--no-color", "--no-log-prefix", service)
+            bounds = []
+            if self.metadata.get("capture_start_utc"):
+                bounds += ["--since", self.metadata["capture_start_utc"]]
+            if self.metadata.get("capture_end_utc"):
+                bounds += ["--until", self.metadata["capture_end_utc"]]
+            logs = self.compose("logs", "--no-color", "--no-log-prefix", *bounds, service, merge_output=True)
             for value in private_values:
                 logs = logs.replace(value, "[REDACTED]")
             (self.output / "logs" / f"{service}.log").write_text(logs)
@@ -198,14 +205,26 @@ class Run:
         with self.lock():
             if self.metadata["state"] != "prepared":
                 raise SafetyError("Only a prepared, unused run may execute.")
+            if self.metadata.get("format_version") != 2:
+                raise SafetyError("Prepare a new run with evidence format 2 before executing.")
             self.identities()
             preflight = self.auxiliary("preflight")
             if preflight["target"] != self.metadata["target"]:
                 raise SafetyError("Catalog target changed since preparation.")
             load = Load(self.metadata, self.output)
+            private_values = [line.split("=", 1)[1] for line in (self.private / "env").read_text().splitlines() if "PASSWORD=" in line]
+
+            def sanitize(text):
+                for value in private_values:
+                    text = text.replace(value, "[REDACTED]")
+                return text
+
+            telemetry = Telemetry(self.metadata, self.output, lambda: load.current_phase, load.fail, sanitize)
             stop = threading.Event()
             heartbeat = None
             self.save("running")
+            self.metadata["capture_start_utc"] = utc()
+            write_json(self.output / "metadata.json", self.metadata)
             old_handlers = {}
 
             def interrupt(signum, frame):
@@ -235,11 +254,13 @@ class Run:
             for sig in (signal.SIGINT, signal.SIGTERM):
                 old_handlers[sig] = signal.signal(sig, interrupt)
             complete = False
+            cleanup_verified = False
             try:
                 before = self.orders()
                 if before != [self.metadata["order_id"]]:
                     raise SafetyError("Only seeded control order may exist before the run.")
                 write_json(self.output / "orders-before.json", before)
+                telemetry.start()
                 print("Measuring baseline, fault, drain and recovery; allow about four minutes.", flush=True)
                 require_baseline(load.phase("baseline", 60))
                 state = self.auxiliary("arm", self.metadata["target"])
@@ -272,16 +293,30 @@ class Run:
                         self.auxiliary("preflight")
                     if state["state"] not in {"clean", "idle"}:
                         raise SafetyError("Cleanup could not be verified.")
+                    cleanup_verified = True
+                    self.metadata["cleanup_verified"] = True
                     if heartbeat:
                         heartbeat.join(timeout=25)
                         if heartbeat.is_alive():
                             raise SafetyError("Renewal worker did not stop; cleanup status needs inspection.")
+                    self.metadata["metric_names"] = telemetry.stop()
+                    self.metadata["metrics_interval_seconds"] = 5
+                    self.event("export_drain_start", seconds=12)
+                    time.sleep(12)
+                    self.event("export_drain_end")
+                    self.metadata["capture_end_utc"] = utc()
                     self.capture()
                     self.save("executed" if complete else "aborted")
+                    try:
+                        from .evidence import analyze_directory
+                    except ImportError:
+                        from evidence import analyze_directory
+                    write_json(self.output / "summary.json", analyze_directory(self.output))
                 except Exception:
-                    self.save("cleanup_unverified")
+                    self.save("evidence_incomplete" if cleanup_verified else "cleanup_unverified")
                     raise
                 finally:
+                    telemetry.stop_event.set()
                     for sig, handler in old_handlers.items():
                         signal.signal(sig, handler)
 

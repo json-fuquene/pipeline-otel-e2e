@@ -40,14 +40,14 @@ Esta fase es operativa y se reserva para ejecución manual confirmada. La autori
 
 ### Procedimiento manual futuro
 
-Los siguientes comandos no existen todavía; serán implementados en fases 2 y 3. Se ejecutarán desde la raíz después de aprobar las verificaciones locales.
+Los comandos del harness y análisis offline están implementados en fases 2 y 3. Se ejecutarán manualmente desde la raíz después de aprobar las verificaciones locales y usando una corrida nueva de formato 2. El generador del informe Markdown sigue pendiente de fase 5.
 
 1. Revisar configuración local del destino Docker sin leer credenciales. Solo continuar con daemon local. Verificar recursos disponibles, reversión previamente confirmada y ausencia de otra corrida activa.
 2. Ejecutar `python3 scripts/chaos/run.py prepare --run-id ensayo-01`. Confirmar puertos loopback, producto/pedido de control y volumen separado. No iniciar si exige un destino externo no autorizado.
 3. Ejecutar `python3 scripts/chaos/run.py run --run-id ensayo-01`. El runner mide baseline 60 s, inyecta 6000 ms durante 60 s, verifica retirada, drena 15 s y mide recuperación 60 s. No reintenta creaciones.
 4. Durante un aborto, ejecutar `python3 scripts/chaos/run.py rollback --run-id ensayo-01`. No esperar al informe para retirar un fallo inseguro.
 5. Ejecutar `python3 scripts/chaos/run.py status --run-id ensayo-01`. Confirmar ausencia de handles propios; readiness recuperado y cero escrituras atribuibles a POST fallidos.
-6. Ejecutar `python3 scripts/chaos/check_evidence.py artifacts/chaos/ensayo-01` y `python3 scripts/chaos/report.py artifacts/chaos/ensayo-01`. Registrar salidas y revisar clasificación frente a evidencia cruda.
+6. Ejecutar `python3 scripts/chaos/analyze.py artifacts/chaos/ensayo-01` y `python3 scripts/chaos/check_evidence.py artifacts/chaos/ensayo-01`. Registrar salidas y revisar clasificación frente a evidencia cruda. La producción de `results.md` se realiza en fase 5, cuando exista el generador correspondiente.
 7. Capturar manualmente las vistas de interés y agregar enlaces relativos únicamente a imágenes existentes. No capturar secretos.
 8. Ejecutar `python3 scripts/chaos/run.py down --run-id ensayo-01`. Conservar volumen y evidencia; no usar `down -v`.
 
