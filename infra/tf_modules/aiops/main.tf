@@ -142,7 +142,8 @@ resource "aws_cloudwatch_metric_alarm" "error_anomaly" {
   alarm_description   = jsonencode({ service = each.key, kind = "error", group = "aiops-component", rule = "error_rate > baseline + 2σ" })
   comparison_operator = "GreaterThanUpperThreshold"
   threshold_metric_id = "band"
-  evaluation_periods  = 1
+  # Los metric filters publican con ~1 min de retraso: se evalúan 3 periodos y basta 1 fuera de la banda.
+  evaluation_periods  = 3
   datapoints_to_alarm = 1
   treat_missing_data  = "notBreaching"
 
@@ -187,7 +188,8 @@ resource "aws_cloudwatch_metric_alarm" "latency_anomaly" {
   alarm_description   = jsonencode({ service = each.key, kind = "latency", group = "aiops-component", rule = "latency_p99 > baseline + 2σ" })
   comparison_operator = "GreaterThanUpperThreshold"
   threshold_metric_id = "band"
-  evaluation_periods  = 1
+  # Los metric filters publican con ~1 min de retraso: se evalúan 3 periodos y basta 1 fuera de la banda.
+  evaluation_periods  = 3
   datapoints_to_alarm = 1
   treat_missing_data  = "notBreaching"
 
