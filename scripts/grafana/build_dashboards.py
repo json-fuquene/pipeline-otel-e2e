@@ -127,7 +127,8 @@ def services_dashboard() -> dict:
               [prom("1000 * sli:latency_p99_seconds:1m", "{{exported_job}}")], w=8, unit="ms",
               thresholds=[("green", None), ("orange", 150), ("red", 300)]),
         panel(lay, "Error budget restante en el rango (SLO 99 %)", [prom(
-            f"clamp_min(100 * (1 - (sum by (exported_job) (increase({err}[$__range])) / "
+            f"clamp_min(100 * (1 - ((sum by (exported_job) (increase({err}[$__range])) "
+            f"or sum by (exported_job) (increase({req}[$__range])) * 0) / "
             f"clamp_min(sum by (exported_job) (increase({req}[$__range])), 1)) / 0.01), -100)",
             "{{exported_job}}")], kind="bargauge", w=8, unit="percent",
             thresholds=[("red", None), ("orange", 25), ("green", 50)],
@@ -145,8 +146,8 @@ def services_dashboard() -> dict:
             "{{client}} → {{server}}")], kind="bargauge", w=12,
             options={"orientation": "horizontal", "displayMode": "basic", "reduceOptions": {"calcs": ["lastNotNull"]}}),
         panel(lay, "Registros fallidos pedidos → data-service", [prom(
-            "sum by (reason) (rate(pipeline_orders_data_record_failures_total[5m]))", "{{reason}}")], w=12,
-            unit="ops"),
+            "sum by (reason) (rate(pipeline_orders_data_record_failures_total[5m])) or vector(0)", "{{reason}}")], w=12,
+            unit="ops", description="0 = todos los pedidos se registraron en data-service."),
         panel(lay, "Logs 5xx con trace_id (pivotar a Jaeger)", [cw_logs("A", [OTEL_LOGS],
             "fields @timestamp, service, route, status_code, duration_ms, trace_id, request_id"
             " | filter status_code >= 500 | sort @timestamp desc | limit 50")],

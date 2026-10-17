@@ -179,7 +179,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "clamp_min(100 * (1 - (sum by (exported_job) (increase(pipeline_http_server_request_duration_seconds_count{http_route!~\"/health/.*\",http_response_status_code=~\"5..\"}[$__range])) / clamp_min(sum by (exported_job) (increase(pipeline_http_server_request_duration_seconds_count{http_route!~\"/health/.*\"}[$__range])), 1)) / 0.01), -100)",
+          "expr": "clamp_min(100 * (1 - ((sum by (exported_job) (increase(pipeline_http_server_request_duration_seconds_count{http_route!~\"/health/.*\",http_response_status_code=~\"5..\"}[$__range])) or sum by (exported_job) (increase(pipeline_http_server_request_duration_seconds_count{http_route!~\"/health/.*\"}[$__range])) * 0) / clamp_min(sum by (exported_job) (increase(pipeline_http_server_request_duration_seconds_count{http_route!~\"/health/.*\"}[$__range])), 1)) / 0.01), -100)",
           "legendFormat": "{{exported_job}}",
           "refId": "A"
         }
@@ -350,7 +350,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "Registros fallidos pedidos → data-service",
-      "description": "",
+      "description": "0 = todos los pedidos se registraron en data-service.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -367,7 +367,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (reason) (rate(pipeline_orders_data_record_failures_total[5m]))",
+          "expr": "sum by (reason) (rate(pipeline_orders_data_record_failures_total[5m])) or vector(0)",
           "legendFormat": "{{reason}}",
           "refId": "A"
         }

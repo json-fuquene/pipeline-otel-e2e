@@ -6,12 +6,18 @@ groups:
     rules:
       - record: sli:requests:rate1m
         expr: sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*"}[1m]))
+      # "or ... * 0" publica 0 explícito cuando no hay errores (sin esto la serie no existe y los paneles muestran "No data").
       - record: sli:errors:rate1m
-        expr: sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*",http_response_status_code=~"5.."}[1m]))
+        expr: |
+          sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*",http_response_status_code=~"5.."}[1m]))
+          or sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*"}[1m])) * 0
       - record: sli:error_ratio:rate1m
         expr: sli:errors:rate1m / clamp_min(sli:requests:rate1m, 1e-9)
       - record: sli:latency_p99_seconds:1m
         expr: histogram_quantile(0.99, sum by (exported_job, le) (rate(pipeline_http_server_request_duration_seconds_bucket{http_route!~"/health/.*"}[1m])))
       # Burn rate frente a un SLO de disponibilidad del 99 % (presupuesto de error = 1 %).
       - record: slo:burn_rate:5m
-        expr: (sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*",http_response_status_code=~"5.."}[5m])) / clamp_min(sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*"}[5m])), 1e-9)) / 0.01
+        expr: |
+          ((sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*",http_response_status_code=~"5.."}[5m]))
+            or sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*"}[5m])) * 0)
+           / clamp_min(sum by (exported_job) (rate(pipeline_http_server_request_duration_seconds_count{http_route!~"/health/.*"}[5m])), 1e-9)) / 0.01
