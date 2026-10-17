@@ -27,8 +27,17 @@ def public_ip(cluster: str, service: str, region: str) -> str | None:
     if not tasks:
         return None
     described = aws("ecs", "describe-tasks", "--cluster", cluster, "--tasks", tasks[0], region=region)
-    details = described["tasks"][0]["attachments"][0]["details"]
-    eni = next(item["value"] for item in details if item["name"] == "networkInterfaceId")
+    # Con Service Connect la tarea tiene varios adjuntos; la ENI es el de tipo ElasticNetworkInterface.
+    eni = next(
+        (item["value"]
+         for attachment in described["tasks"][0].get("attachments", [])
+         if attachment.get("type") == "ElasticNetworkInterface"
+         for item in attachment.get("details", [])
+         if item["name"] == "networkInterfaceId"),
+        None,
+    )
+    if eni is None:
+        return None
     interfaces = aws("ec2", "describe-network-interfaces", "--network-interface-ids", eni, region=region)
     return interfaces["NetworkInterfaces"][0].get("Association", {}).get("PublicIp")
 
