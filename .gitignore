@@ -4,6 +4,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.chaos/
 postgres_data/
 
 # Terraform: conservar el estado local fuera del control de versiones.

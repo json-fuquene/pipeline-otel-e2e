@@ -101,6 +101,46 @@ Para comenzar de nuevo se puede conservar `.env` y arrancar con `docker compose 
 
 La arquitectura, los contratos, criterios de aceptación y fases de servicios están descritos en [`specs/ID-001-microservicios-locales/`](specs/ID-001-microservicios-locales/). La instrumentación y sus criterios se describen en [`specs/ID-002-observabilidad-otel/`](specs/ID-002-observabilidad-otel/).
 
+## Game Day de latencia local
+
+El [plan ID-003](specs/ID-003-gameday-caos-local/00-plan-general.md) diseña tres experimentos y proporciona un harness para ejecutar el de latencia. Su validación operativa está pendiente: las pruebas unitarias no demuestran capacidades del daemon ni recuperación real.
+
+El laboratorio usa `compose.chaos.yaml`, un proyecto `chaos-<run-id>`, volumen propio y puertos dinámicos publicados solo en `127.0.0.1`. El runner requiere Python 3 en un entorno POSIX, como Linux, macOS o WSL, para sus bloqueos con `fcntl`. Las credenciales nuevas se conservan con permisos privados en `.chaos/<run-id>/env`, excluido del versionado y del contexto de build; no reutiliza `.env`. Solo admite Docker mediante socket Unix o named pipe local, y rechaza destinos SSH/TCP y named pipes remotos. El auxiliar añade `NET_ADMIN` exclusivamente al espacio de red de pedidos.
+
+Pruebas unitarias rápidas, sin Docker ni solicitudes reales:
+
+```sh
+python3 -m unittest discover -s tests/chaos -p 'test_*.py'
+```
+
+Los siguientes pasos son manuales. La preparación construye imágenes y arranca servicios; puede requerir varios minutos y descargar dependencias. Confirmar previamente el destino Docker local y los accesos de descarga que correspondan. Usar un identificador nuevo para cada corrida, sin volver a preparar un volumen con credenciales distintas:
+
+```sh
+python3 scripts/chaos/run.py prepare --run-id ensayo-01
+python3 scripts/chaos/run.py status --run-id ensayo-01
+```
+
+La ejecución tarda aproximadamente cuatro minutos más captura y drenaje: baseline 60 s, fallo hasta 60 s, drenaje 15 s y recuperación 60 s. Introduce 6000 ms por paquete únicamente en tráfico IPv4 TCP de pedidos hacia catálogo:8000. Las reglas rechazan configuraciones ajenas; el supervisor retira por TTL o pérdida de la renovación de diez segundos. El fallo del daemon o auxiliar requiere comprobar limpieza antes de reutilizar el laboratorio.
+
+```sh
+python3 scripts/chaos/run.py run --run-id ensayo-01
+```
+
+En otra terminal se puede retirar el fallo de inmediato y consultar el estado. La repetición de rollback es inocua:
+
+```sh
+python3 scripts/chaos/run.py rollback --run-id ensayo-01
+python3 scripts/chaos/run.py status --run-id ensayo-01
+```
+
+Después de verificar limpieza, detener el proyecto conservando el volumen y los archivos de evidencia:
+
+```sh
+python3 scripts/chaos/run.py down --run-id ensayo-01
+```
+
+Se conservan metadatos saneados, eventos, solicitudes, UUID de pedidos antes/después y logs básicos en `artifacts/chaos/<run-id>/`, incluso ante abortos cuando la captura siga disponible. El estado `executed` indica que terminó la secuencia; la evaluación de la hipótesis sigue pendiente. La captura detallada de telemetría, el verificador de evidencia y el informe pertenecen a fases posteriores. Las capturas de pantalla son manuales y el PDF permanece diferido. No publicar `.chaos/` ni mostrar configuraciones interpoladas que contengan credenciales.
+
 ## Prueba de observabilidad en ECS
 
 El laboratorio efímero en AWS ECS Fargate reúne Collector, Jaeger, Prometheus, Grafana y CloudWatch Logs. Los manifiestos Terraform están en [`infra/otel-ecs-lab`](infra/otel-ecs-lab/README.md), con módulos en `infra/tf_modules`; configura el CIDR permitido, publica las imágenes en ECR y sigue su guía para aplicar los cambios. Grafana escucha en el puerto 3000 y su contraseña inicial se almacena en Secrets Manager. PostgreSQL, Jaeger y los datos de interfaz son efímeros. La revisión 8, que contiene el ajuste del panel CPU de CloudWatch, está en rollout; confirma el estado del servicio y valida los seis paneles en Grafana después de completar el despliegue. El repositorio no aplica infraestructura automáticamente.

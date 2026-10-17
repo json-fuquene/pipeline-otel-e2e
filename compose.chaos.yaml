@@ -1,0 +1,74 @@
+{
+  "x-labels": &labels {"io.pipeline.chaos.run": "${CHAOS_RUN_ID:?Run ID required}"},
+  "x-db": &db {"DB_HOST": "postgres", "DB_PORT": "5432", "DB_NAME": "pipeline"},
+  "x-health": &health {
+    "test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=8).read()"],
+    "interval": "5s", "timeout": "10s", "retries": 12, "start_period": "20s"
+  },
+  "services": {
+    "otel-collector": {
+      "image": "otel/opentelemetry-collector-contrib:0.162.0",
+      "command": ["--config=/etc/otelcol-contrib/config.yaml"],
+      "labels": *labels,
+      "volumes": ["./docker/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro"]
+    },
+    "postgres": {
+      "image": "postgres:17", "labels": *labels,
+      "environment": {
+        "POSTGRES_USER": "postgres", "POSTGRES_DB": "pipeline",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?Private credentials required}",
+        "CATALOG_DB_PASSWORD": "${CATALOG_DB_PASSWORD:?Private credentials required}",
+        "ORDERS_DB_PASSWORD": "${ORDERS_DB_PASSWORD:?Private credentials required}"
+      },
+      "volumes": ["chaos_data:/var/lib/postgresql/data", "./docker/postgres/init-services.sh:/docker-entrypoint-initdb.d/10-init-services.sh:ro"],
+      "healthcheck": {
+        "test": ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d pipeline"],
+        "interval": "5s", "timeout": "3s", "retries": 12, "start_period": "10s"
+      }
+    },
+    "catalog-migrate": {
+      "build": {"context": ".", "dockerfile": "services/catalog/Dockerfile"}, "labels": *labels,
+      "command": ["alembic", "-c", "services/catalog/alembic.ini", "upgrade", "head"],
+      "environment": {<<: *db, "DB_USER": "catalog_app", "DB_PASSWORD": "${CATALOG_DB_PASSWORD:?Private credentials required}"},
+      "depends_on": {"postgres": {"condition": "service_healthy"}}
+    },
+    "orders-migrate": {
+      "build": {"context": ".", "dockerfile": "services/orders/Dockerfile"}, "labels": *labels,
+      "command": ["alembic", "-c", "services/orders/alembic.ini", "upgrade", "head"],
+      "environment": {<<: *db, "DB_USER": "orders_app", "DB_PASSWORD": "${ORDERS_DB_PASSWORD:?Private credentials required}"},
+      "depends_on": {"postgres": {"condition": "service_healthy"}}
+    },
+    "catalog": {
+      "build": {"context": ".", "dockerfile": "services/catalog/Dockerfile"}, "labels": *labels,
+      "environment": {
+        <<: *db, "DB_USER": "catalog_app", "DB_PASSWORD": "${CATALOG_DB_PASSWORD:?Private credentials required}",
+        "OTEL_ENABLED": "true", "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel-collector:4317",
+        "OTEL_METRICS_PORT": "9464", "OTEL_SEMCONV_STABILITY_OPT_IN": "http", "LOG_LEVEL": "INFO"
+      },
+      "ports": ["127.0.0.1::8000", "127.0.0.1::9464"],
+      "healthcheck": *health,
+      "depends_on": {"postgres": {"condition": "service_healthy"}, "catalog-migrate": {"condition": "service_completed_successfully"}}
+    },
+    "orders": {
+      "build": {"context": ".", "dockerfile": "services/orders/Dockerfile"}, "labels": *labels,
+      "environment": {
+        <<: *db, "DB_USER": "orders_app", "DB_PASSWORD": "${ORDERS_DB_PASSWORD:?Private credentials required}",
+        "CATALOG_BASE_URL": "http://catalog:8000", "OTEL_ENABLED": "true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel-collector:4317", "OTEL_METRICS_PORT": "9464",
+        "OTEL_SEMCONV_STABILITY_OPT_IN": "http", "LOG_LEVEL": "INFO"
+      },
+      "ports": ["127.0.0.1::8000", "127.0.0.1::9464"], "healthcheck": *health,
+      "depends_on": {"postgres": {"condition": "service_healthy"}, "orders-migrate": {"condition": "service_completed_successfully"}, "catalog": {"condition": "service_healthy"}}
+    },
+    "chaos-net": {
+      "build": {"context": ".", "dockerfile": "docker/chaos/Dockerfile"}, "labels": *labels,
+      "network_mode": "service:orders", "user": "0:0", "cap_drop": ["ALL"], "cap_add": ["NET_ADMIN"],
+      "read_only": true, "tmpfs": ["/run/chaos:rw,noexec,nosuid,size=1m"],
+      "security_opt": ["no-new-privileges:true"], "stop_grace_period": "20s",
+      "healthcheck": {"test": ["CMD", "python", "/opt/chaos/supervisor.py", "status"], "interval": "5s", "timeout": "15s", "retries": 5},
+      "depends_on": {"orders": {"condition": "service_healthy"}}
+    }
+  },
+  "networks": {"default": {"enable_ipv6": false, "labels": *labels}},
+  "volumes": {"chaos_data": {"labels": *labels}}
+}

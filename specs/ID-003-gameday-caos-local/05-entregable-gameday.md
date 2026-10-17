@@ -18,7 +18,7 @@ Producir un informe Markdown que permita revisar hipótesis, diseños, observabi
 
 ## Contexto de la fase
 
-El [requerimiento original](../../requeimientos.md) exige un PDF de cuatro a cinco páginas. La entrega inmediata autorizada comprende la especificación y planificación en Markdown; el informe ejecutado y el PDF son entregables futuros. La preparación editorial del contenido no acredita haber ejecutado un experimento ni haber generado un PDF.
+El [requerimiento original](../../requerimientos.md) exige un PDF de cuatro a cinco páginas. La entrega inmediata autorizada comprende la especificación y planificación en Markdown; el informe ejecutado y el PDF son entregables futuros. La preparación editorial del contenido no acredita haber ejecutado un experimento ni haber generado un PDF.
 
 ## Alcance técnico
 

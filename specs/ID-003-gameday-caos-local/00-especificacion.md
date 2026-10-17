@@ -6,9 +6,9 @@
 |---|---|
 | **ID** | ID-003 |
 | **Título** | Game Day de caos local |
-| **Origen** | [Requerimientos](../../requeimientos.md) y alcance documental acordado |
+| **Origen** | [Requerimientos](../../requerimientos.md) y alcance documental acordado |
 | **Sprint / iteración** | No documentado |
-| **Estado de la especificación** | Aprobada para planificación; implementación pendiente |
+| **Estado de la especificación** | Aprobada; fase 01 completada y fase 02 implementada sin validación operativa |
 | **Iniciativas relacionadas** | ID-001: servicios y persistencia; ID-002: instrumentación reutilizada |
 
 ## Problema
@@ -21,7 +21,7 @@ El benchmark existente consulta productos y pedidos ya creados, por lo que no ve
 
 Disponer de tres hipótesis falsables y sus experimentos, con impacto acotado, observabilidad y reversión. Una ejecución local posterior permitirá comparar resultados reales antes, durante y después del fallo, identificar una debilidad respaldada por evidencia y proponer una remediación verificable.
 
-La entrega actual comprende exclusivamente esta documentación Markdown. El experimento, sus evidencias reales y el PDF original se mantienen pendientes; las capturas se incorporarán manualmente.
+La entrega inicial comprendió documentación Markdown. La fase 02 incorpora ahora el harness local y sus pruebas unitarias, sin ejecutar el experimento ni producir evidencia operativa real. El PDF original se mantiene diferido y las capturas se incorporarán manualmente.
 
 ## Actores y sistemas involucrados
 
@@ -84,7 +84,7 @@ Los ejemplos de formato de RF-001 no son aclaraciones pendientes. Los enunciados
 
 ## Fuera de alcance
 
-- Implementación de código, arranque de servicios, ejecución de experimentos y creación de imágenes durante la entrega documental actual.
+- Arranque de servicios, ejecución de experimentos y creación de imágenes durante la validación automática de la fase 02; quedan para ejecución manual confirmada.
 - Ejecución de CPU y partición de red; solo se diseñan sus experimentos.
 - AWS, Kubernetes, servicios externos y despliegues remotos.
 - Instalación de Chaos Monkey, Gremlin o Litmus; su uso es conceptual.
@@ -111,11 +111,16 @@ Los ejemplos de formato de RF-001 no son aclaraciones pendientes. Los enunciados
 | D-005 | Inyección selectiva desde auxiliar con temporizador independiente | Modificar red del host; alterar código de la API | Reversión y aislamiento | Plan general |
 | D-006 | Umbrales experimentales explícitos, sujetos a refutación | Presentarlos como SLO productivos | No existen SLO aprobados para este Game Day | Diseño |
 | D-007 | Conservar volumen del laboratorio al finalizar | Eliminar datos automáticamente | Permitir inspección y evitar borrados implícitos | Plan general |
+| D-008 | Cerrar fase 01 por validación estática de su entregable de diseño; operación en fases 02–04 | Exigir una corrida para cerrar el diseño que habilita construir el harness | Evitar dependencia circular sin adelantar validación de resiliencia | Fase 01 |
+| D-009 | Fijar ventanas semiabiertas, denominadores, mínimos de muestra y aborto de controles explícitos | Resolver criterios durante la ejecución o mezclar readiness con liveness | Evaluación reproducible y transferencia sin decisiones implícitas | Fase 01 |
+| D-010 | Supervisor PID1 con IPC UNIX privado, TTL y concesión independiente del runner; DNS en hilo separado | Temporizador dentro del generador o DNS bloqueante en el bucle de retirada | Mantener reversión ante caída del runner y no bloquearla por resolución | Fase 02 |
+| D-011 | Credenciales propias en .chaos/ID/env con permisos privados, fuera de artefactos y builds | Reutilizar .env o publicar secretos junto a evidencia | Preservación de la instancia cotidiana y separación de evidencia | Fase 02 |
+| D-012 | Registrar límites host_before/host_after de IPC y dominio de cada reloj | Comparar directamente monotónicos de host y contenedor | Evitar asumir un mismo origen temporal en Docker Desktop | Fase 02 |
 
 ## Referencias
 
 - [Guía de trabajo](../GUIA-AGENTE.md) y [constitución](../CONSTITUCION.md).
-- [Plan general](00-plan-general.md), [README](../../README.md) y [requerimientos](../../requeimientos.md).
+- [Plan general](00-plan-general.md), [README](../../README.md) y [requerimientos](../../requerimientos.md).
 - [Servicios locales](../ID-001-microservicios-locales/00-especificacion.md) y [observabilidad](../ID-002-observabilidad-otel/00-especificacion.md).
 - [Límite y manejo de errores de pedidos](../../services/orders/app/main.py).
 - [tc-netem, manual upstream de iproute2](https://man7.org/linux/man-pages/man8/tc-netem.8.html), consultado el 2026-10-16: retraso por paquete, clasificación y limitaciones del kernel.
