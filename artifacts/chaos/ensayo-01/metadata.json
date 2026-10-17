@@ -1,0 +1,166 @@
+{
+  "format_version": 1,
+  "run_id": "ensayo-01",
+  "project": "chaos-ensayo-01",
+  "docker_endpoint": "unix:///var/run/docker.sock",
+  "created_at": "2026-10-17T03:59:18.132092+00:00",
+  "experiment": "E1",
+  "delay_ms": 6000,
+  "ttl_seconds": 60,
+  "lease_seconds": 10,
+  "windows_seconds": {
+    "baseline": 60,
+    "fault": 60,
+    "drain": 15,
+    "recovery": 60
+  },
+  "rate_per_operation": 1,
+  "max_business_in_flight": 10,
+  "request_timeout_seconds": 8,
+  "clock_domains": {
+    "requests": "host",
+    "supervisor": "container",
+    "mapping": "IPC host_before/host_after bounds"
+  },
+  "versions": {
+    "python": "3.14.7",
+    "docker": "Docker version 29.8.2, build 7fc2dff",
+    "compose": "5.6.0"
+  },
+  "state": "executed",
+  "urls": {
+    "catalog": "http://127.0.0.1:54453",
+    "orders": "http://127.0.0.1:54456"
+  },
+  "metric_urls": {
+    "catalog": "http://127.0.0.1:54454",
+    "orders": "http://127.0.0.1:54455"
+  },
+  "images": {
+    "catalog": "sha256:e57d835849df8965997835392e36055676e3adaeb9af77234ad9d1c692fbaf79",
+    "orders": "sha256:77233984427590d58f99e75472946f24d37202b95e5a91092d75a1c159ab4fbd",
+    "chaos-net": "sha256:51003c738cf402f3d3157f2b25cf2236a71c67f471a7ab76b258dcb241baa4ea",
+    "postgres": "sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+    "otel-collector": "sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6",
+    "catalog-migrate": "sha256:4ad52cb995feae8c0c6a911c7ec27247d50e386859a850b7bd4bf88a2195d858",
+    "orders-migrate": "sha256:46fd5dcd0a173338a2fb563d98fa84784ed3b54e1ac5ba835900567fab05c893"
+  },
+  "target": "172.19.0.4",
+  "product_id": "3fc5c2c0-483b-4180-a53f-0c8be0f3b7c0",
+  "order_id": "e48da367-4436-4fd1-9e88-8dba3b58cd39",
+  "activation": {
+    "state": "active",
+    "target": "172.19.0.4",
+    "device": "eth0",
+    "deadline": 15781.196510404,
+    "lease": 15731.196511204,
+    "reason": null,
+    "monotonic": 15721.235302043,
+    "snapshot": {
+      "qdisc": [
+        {
+          "kind": "prio",
+          "handle": "7a10:",
+          "root": true,
+          "refcnt": 9,
+          "options": {
+            "bands": 3,
+            "priomap": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "multiqueue": false
+          },
+          "bytes": 0,
+          "packets": 0,
+          "drops": 0,
+          "overlimits": 0,
+          "requeues": 0,
+          "backlog": 0,
+          "qlen": 0
+        },
+        {
+          "kind": "netem",
+          "handle": "7a20:",
+          "parent": "7a10:3",
+          "options": {
+            "limit": 1000,
+            "delay": {
+              "delay": 6,
+              "jitter": 0,
+              "correlation": 0
+            },
+            "seed": 11841351121122554790,
+            "ecn": false,
+            "gap": 0
+          },
+          "bytes": 0,
+          "packets": 0,
+          "drops": 0,
+          "overlimits": 0,
+          "requeues": 0,
+          "backlog": 0,
+          "qlen": 0
+        }
+      ],
+      "filters": [
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0
+        },
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0,
+          "options": {
+            "fh": "800:",
+            "ht_divisor": 1
+          }
+        },
+        {
+          "parent": "7a10:",
+          "protocol": "ip",
+          "pref": 1,
+          "kind": "u32",
+          "chain": 0,
+          "options": {
+            "fh": "800::800",
+            "order": 2048,
+            "key_ht": "800",
+            "bkt": "0",
+            "flowid": "7a10:3",
+            "not_in_hw": true,
+            "rule_hit": 0,
+            "success": 0,
+            "match": {
+              "value": "1f40",
+              "mask": "ffff",
+              "offmask": "",
+              "off": 20
+            }
+          }
+        }
+      ]
+    },
+    "host_confirmation_monotonic": 15721.255759825
+  }
+}
