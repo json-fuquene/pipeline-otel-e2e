@@ -1,0 +1,641 @@
+{
+  "uid": "id003-network",
+  "title": "ID-003 · Red L7 (Service Connect) y VPC Flow Logs",
+  "tags": [
+    "ID-003",
+    "network"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Service Connect: solicitudes por destino (L7 este-oeste)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "RequestCount",
+          "dimensions": {
+            "DiscoveryName": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "catalog",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "RequestCount",
+          "dimensions": {
+            "DiscoveryName": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "data-service",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "RequestCount",
+          "dimensions": {
+            "DiscoveryName": "otel-collector"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "otel-collector",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Service Connect: respuestas 5xx del destino",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "HTTPCode_Target_5XX_Count",
+          "dimensions": {
+            "TargetDiscoveryName": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "catalog",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "HTTPCode_Target_5XX_Count",
+          "dimensions": {
+            "TargetDiscoveryName": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "data-service",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Service Connect: TargetResponseTime (promedio / máximo)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "TargetResponseTime",
+          "dimensions": {
+            "TargetDiscoveryName": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "catalog avg",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "TargetResponseTime",
+          "dimensions": {
+            "TargetDiscoveryName": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "catalog max",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "TargetResponseTime",
+          "dimensions": {
+            "TargetDiscoveryName": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "data avg",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "TargetResponseTime",
+          "dimensions": {
+            "TargetDiscoveryName": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "data max",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Service Connect: conexiones activas",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "ActiveConnectionCount",
+          "dimensions": {
+            "DiscoveryName": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "catalog",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "ActiveConnectionCount",
+          "dimensions": {
+            "DiscoveryName": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "data-service",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "AWS/ECS",
+          "metricName": "ActiveConnectionCount",
+          "dimensions": {
+            "DiscoveryName": "orders"
+          },
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "orders",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "VPC Flow Logs: bytes norte-sur vs este-oeste",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "total",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "AcceptedBytes",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "ew",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "EastWestBytes",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "este-oeste",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "ns",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "total - ew",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "norte-sur",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "band",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "ANOMALY_DETECTION_BAND(ew, 2)",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "banda E-W 2σ",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "VPC Flow Logs: flujos rechazados",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "RejectedFlows",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "REJECT",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Top pares este-oeste (bytes)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Logs",
+          "logsMode": "Logs",
+          "queryLanguage": "CWLI",
+          "queryType": "range",
+          "logGroupNames": [
+            "/vpc/pipeline-otel-obs/flow-logs"
+          ],
+          "expression": "parse @message \"* * * * * * * * * * * * * * * * *\" as version, account, eni, srcaddr, dstaddr, srcport, dstport, protocol, packets, bytes, start, end, action, status, pkt_src, pkt_dst, direction | filter action = \"ACCEPT\" and isIpv4InSubnet(srcaddr, \"10.63.0.0/16\") and isIpv4InSubnet(dstaddr, \"10.63.0.0/16\") | stats sum(bytes) as total_bytes, count(*) as flows by srcaddr, dstaddr, dstport | sort total_bytes desc | limit 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

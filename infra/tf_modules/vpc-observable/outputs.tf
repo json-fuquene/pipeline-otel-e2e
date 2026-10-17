@@ -1,0 +1,9 @@
+output "vpc_id" { value = aws_vpc.lab.id }
+output "vpc_cidr" { value = aws_vpc.lab.cidr_block }
+output "public_subnet_ids" { value = aws_subnet.public[*].id }
+output "private_subnet_ids" { value = aws_subnet.private[*].id }
+output "tasks_security_group_id" { value = aws_security_group.tasks.id }
+output "database_security_group_id" { value = aws_security_group.database.id }
+output "flow_log_group_name" { value = aws_cloudwatch_log_group.flow_logs.name }
+output "flow_log_group_arn" { value = aws_cloudwatch_log_group.flow_logs.arn }
+output "flow_log_format" { value = local.flow_log_format }

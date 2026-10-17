@@ -3,19 +3,44 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
-import sys
 from pathlib import Path
+
+# ID-002: laboratorio de una tarea (infra/otel-ecs-lab).
+LAB_IMAGES = {
+    "catalog": "services/catalog/Dockerfile",
+    "orders": "services/orders/Dockerfile",
+    "postgres": "docker/postgres/Dockerfile",
+    "otel-collector": "docker/otel-collector/Dockerfile",
+    "jaeger": "docker/jaeger/Dockerfile",
+    "prometheus": "docker/prometheus/Dockerfile",
+    "grafana": "docker/grafana/Dockerfile",
+}
+
+# ID-003: sistema observable con tres microservicios (infra/aws-observable).
+OBSERVABLE_IMAGES = {
+    "catalog": "services/catalog/Dockerfile",
+    "orders": "services/orders/Dockerfile",
+    "data": "services/data/Dockerfile",
+    "postgres": "docker/postgres/Dockerfile",
+    "otel-collector": "docker/otel-collector/Dockerfile.observable",
+    "jaeger": "docker/jaeger/Dockerfile",
+    "prometheus": "docker/prometheus/Dockerfile.observable",
+    "grafana": "docker/grafana/Dockerfile.observable",
+}
 
 
 def main() -> int:
-    if len(sys.argv) not in (3, 4):
-        print("Uso: push-ecs-images.py REGION ecr_urls.json [IMAGE_TAG]", file=sys.stderr)
-        return 2
-
-    region, urls_path = sys.argv[1:3]
-    image_tag = sys.argv[3] if len(sys.argv) == 4 else "phase2-test"
+    parser = argparse.ArgumentParser(description="Construye y publica imágenes en ECR con tag inmutable.")
+    parser.add_argument("region")
+    parser.add_argument("urls_path", help="JSON de terraform output -json ecr_urls")
+    parser.add_argument("image_tag", nargs="?", default="phase2-test")
+    parser.add_argument("--profile", choices=["lab", "observable"], default="lab",
+                        help="lab = ID-002 (otel-ecs-lab); observable = ID-003 (aws-observable)")
+    args = parser.parse_args()
+    region, urls_path, image_tag = args.region, args.urls_path, args.image_tag
     repository_urls = json.loads(Path(urls_path).read_text(encoding="utf-8"))
     root = Path(__file__).resolve().parents[1]
     registry = next(iter(repository_urls.values())).split("/", 1)[0]
@@ -31,15 +56,7 @@ def main() -> int:
         check=True,
         text=True,
     )
-    image_definitions = {
-        "catalog": "services/catalog/Dockerfile",
-        "orders": "services/orders/Dockerfile",
-        "postgres": "docker/postgres/Dockerfile",
-        "otel-collector": "docker/otel-collector/Dockerfile",
-        "jaeger": "docker/jaeger/Dockerfile",
-        "prometheus": "docker/prometheus/Dockerfile",
-        "grafana": "docker/grafana/Dockerfile",
-    }
+    image_definitions = OBSERVABLE_IMAGES if args.profile == "observable" else LAB_IMAGES
 
     try:
         for name, dockerfile in image_definitions.items():

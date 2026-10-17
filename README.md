@@ -1,4 +1,6 @@
-# Catálogo y pedidos locales
+# Catálogo, pedidos y data-service
+
+Ejemplo de APIs independientes con FastAPI. La actividad 3.3 (ID-003) agrega `data-service` y el sistema observable completo en AWS; ver [Sistema observable (ID-003)](#sistema-observable-id-003).
 
 Ejemplo de dos APIs independientes con FastAPI. Catálogo administra productos; pedidos valida cada producto por HTTP y conserva una copia de sus datos. Ambos servicios escriben en esquemas PostgreSQL propios.
 
@@ -104,3 +106,13 @@ La arquitectura, los contratos, criterios de aceptación y fases de servicios es
 ## Prueba de observabilidad en ECS
 
 El laboratorio efímero en AWS ECS Fargate reúne Collector, Jaeger, Prometheus, Grafana y CloudWatch Logs. Los manifiestos Terraform están en [`infra/otel-ecs-lab`](infra/otel-ecs-lab/README.md), con módulos en `infra/tf_modules`; configura el CIDR permitido, publica las imágenes en ECR y sigue su guía para aplicar los cambios. Grafana escucha en el puerto 3000 y su contraseña inicial se almacena en Secrets Manager. PostgreSQL, Jaeger y los datos de interfaz son efímeros. La revisión 8, que contiene el ajuste del panel CPU de CloudWatch, está en rollout; confirma el estado del servicio y valida los seis paneles en Grafana después de completar el despliegue. El repositorio no aplica infraestructura automáticamente.
+
+## Sistema observable (ID-003)
+
+`data-service` (puerto local `8003`, métricas `9466`) registra cada pedido y calcula reportes; pedidos lo consulta en `GET /orders/summary`. En Compose se inicializa su rol con `data-bootstrap` aun sobre un volumen existente; si `.env` proviene de ID-002, `python3 scripts/init-local-env.py` agrega solo `DATA_DB_PASSWORD`.
+
+Caos local (opcional): `CATALOG_CHAOS_LATENCY_MS=200 docker compose up -d` o `DATA_CHAOS_ERROR_RATE=0.1 DATA_CHAOS_ERROR_DELAY_MS=500 docker compose up -d`.
+
+Pruebas: `pip install -r requirements-dev.txt && python3 -m pytest -q` (la integración con PostgreSQL se activa con `TEST_DATA_DB_PASSWORD`).
+
+Despliegue AWS, carga, experimentos de caos, reporte de ruido y limpieza: [`infra/aws-observable/README.md`](infra/aws-observable/README.md). Especificación: [`specs/ID-003-sistema-observable/`](specs/ID-003-sistema-observable/00-especificacion.md).

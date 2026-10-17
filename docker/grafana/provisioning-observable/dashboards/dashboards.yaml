@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: id-003
+    orgId: 1
+    folder: ID-003 Sistema observable
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

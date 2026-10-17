@@ -9,6 +9,7 @@ COPY services/catalog/requirements.txt /tmp/requirements.txt
 RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt \
     && useradd --system --uid 10001 --create-home appuser
 COPY services/catalog /app/services/catalog
+COPY services/shared /app/services/shared
 USER 10001:10001
 EXPOSE 8000 9464
 CMD ["uvicorn", "services.catalog.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

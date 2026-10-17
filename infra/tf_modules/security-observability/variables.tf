@@ -1,0 +1,14 @@
+variable "name" { type = string }
+variable "aws_region" { type = string }
+variable "vpc_cidr" { type = string }
+variable "flow_log_group_name" { type = string }
+variable "ecs_log_group_name" { type = string }
+variable "alarm_topic_arn" { type = string }
+variable "lambda_source_dir" { type = string }
+variable "log_retention_days" { type = number }
+variable "enable_security_hub" { type = bool }
+variable "enable_inspector" { type = bool }
+variable "enable_guardduty" { type = bool }
+variable "rejected_flows_threshold" { type = number }
+variable "failed_auth_threshold" { type = number }
+variable "tags" { type = map(string) }

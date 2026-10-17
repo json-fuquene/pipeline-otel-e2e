@@ -1,0 +1,9 @@
+variable "name" { type = string }
+variable "subnet_ids" { type = list(string) }
+variable "security_group_id" { type = string }
+variable "engine_version" { type = string }
+variable "instance_class" { type = string }
+variable "database_name" { type = string }
+variable "master_username" { type = string }
+variable "performance_insights_enabled" { type = bool }
+variable "tags" { type = map(string) }

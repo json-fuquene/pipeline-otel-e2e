@@ -68,7 +68,9 @@ services:
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRICS_PORT: "9464"
-      OTEL_SEMCONV_STABILITY_OPT_IN: http
+      OTEL_SEMCONV_STABILITY_OPT_IN: http,database
+      CHAOS_LATENCY_MS: ${CATALOG_CHAOS_LATENCY_MS:-0}
+      CHAOS_ERROR_RATE: ${CATALOG_CHAOS_ERROR_RATE:-0}
     ports:
       - "127.0.0.1:8001:8000"
       - "127.0.0.1:9464:9464"
@@ -100,11 +102,12 @@ services:
       DB_USER: orders_app
       DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
       CATALOG_BASE_URL: http://catalog:8000
+      DATA_SERVICE_BASE_URL: http://data-service:8000
       LOG_LEVEL: INFO
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRICS_PORT: "9464"
-      OTEL_SEMCONV_STABILITY_OPT_IN: http
+      OTEL_SEMCONV_STABILITY_OPT_IN: http,database
     ports:
       - "127.0.0.1:8002:8000"
       - "127.0.0.1:9465:9464"
@@ -115,6 +118,76 @@ services:
         condition: service_completed_successfully
       catalog:
         condition: service_healthy
+      data-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=10).read()"
+      interval: 5s
+      timeout: 15s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  data-bootstrap:
+    image: postgres:17
+    entrypoint: ["sh", "/usr/local/bin/bootstrap-role.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: pipeline
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      BOOTSTRAP_ROLE: data_app
+      BOOTSTRAP_SCHEMA: data
+      BOOTSTRAP_PASSWORD: ${DATA_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+    volumes:
+      - ./docker/postgres/bootstrap-role.sh:/usr/local/bin/bootstrap-role.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  data-migrate:
+    build:
+      context: .
+      dockerfile: services/data/Dockerfile
+    command: ["alembic", "-c", "services/data/alembic.ini", "upgrade", "head"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: data_app
+      DB_PASSWORD: ${DATA_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+    depends_on:
+      data-bootstrap:
+        condition: service_completed_successfully
+
+  data-service:
+    build:
+      context: .
+      dockerfile: services/data/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: pipeline
+      DB_USER: data_app
+      DB_PASSWORD: ${DATA_DB_PASSWORD:?Ejecuta python3 scripts/init-local-env.py}
+      DB_CLOUD_PROVIDER: local
+      LOG_LEVEL: INFO
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_METRICS_PORT: "9464"
+      OTEL_SEMCONV_STABILITY_OPT_IN: http,database
+      CHAOS_ERROR_RATE: ${DATA_CHAOS_ERROR_RATE:-0}
+      CHAOS_ERROR_DELAY_MS: ${DATA_CHAOS_ERROR_DELAY_MS:-0}
+    ports:
+      - "127.0.0.1:8003:8000"
+      - "127.0.0.1:9466:9464"
+    depends_on:
+      data-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD

@@ -35,11 +35,13 @@ from services.catalog.app.telemetry import (
     stop_telemetry,
 )
 from services.catalog.app.schemas import CatalogReadiness, ProductCreate, ProductOut, ProductPage
+from services.shared.chaos import ChaosController
 
 logger = configure_logging()
 otel_enabled = configure_telemetry("catalog")
 attach_otel_logging(logger)
 tracer = get_tracer()
+chaos = ChaosController("catalog", logger)
 
 
 @asynccontextmanager
@@ -50,8 +52,10 @@ async def lifespan(app: FastAPI):
     try:
         if otel_enabled:
             start_metrics_server()
+        await chaos.start()
         yield
     finally:
+        await chaos.stop()
         await engine.dispose()
         stop_telemetry()
 
@@ -63,6 +67,13 @@ if otel_enabled:
         excluded_urls="health/live,health/ready",
         server_request_hook=sanitize_server_span,
     )
+
+
+# El último middleware registrado es el más externo: el caos queda dentro del logging para
+# que la latencia y los 503 inyectados se reflejen en duration_ms y status_code.
+@app.middleware("http")
+async def chaos_middleware(request: Request, call_next):
+    return await chaos.middleware(request, call_next)
 
 
 @app.middleware("http")

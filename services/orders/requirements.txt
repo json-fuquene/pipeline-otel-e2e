@@ -13,3 +13,4 @@ opentelemetry-exporter-prometheus==0.66b1
 opentelemetry-instrumentation-fastapi==0.66b1
 opentelemetry-instrumentation-httpx==0.66b1
 opentelemetry-instrumentation-sqlalchemy==0.66b1
+boto3==1.43.100

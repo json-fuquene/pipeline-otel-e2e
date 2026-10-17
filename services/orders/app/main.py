@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -9,6 +11,7 @@ from uuid import UUID, uuid4
 import httpx
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
+from opentelemetry import metrics
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
-from services.orders.app.config import catalog_base_url
+from services.orders.app.config import catalog_base_url, data_service_base_url
 from services.orders.app.database import create_database
 from services.orders.app.errors import (
     ApiError,
@@ -45,6 +48,7 @@ from services.orders.app.schemas import (
     OrderPage,
     OrdersReadiness,
 )
+from services.shared.chaos import ChaosController
 
 logger = configure_logging()
 otel_enabled = configure_telemetry("orders")
@@ -52,6 +56,12 @@ if otel_enabled:
     instrument_httpx()
 attach_otel_logging(logger)
 tracer = get_tracer()
+chaos = ChaosController("orders", logger)
+data_record_failures = metrics.get_meter("services.orders").create_counter(
+    "orders.data_record.failures",
+    unit="{failure}",
+    description="Pedidos guardados cuyo registro en data-service no se completó.",
+)
 
 
 @asynccontextmanager
@@ -60,6 +70,7 @@ async def lifespan(app: FastAPI):
     app.state.session_factory = session_factory
     app.state.engine = engine
     app.state.catalog_base_url = catalog_base_url()
+    app.state.data_base_url = data_service_base_url()
     app.state.catalog_client = httpx.AsyncClient(
         timeout=httpx.Timeout(5.0),
         follow_redirects=False,
@@ -67,8 +78,10 @@ async def lifespan(app: FastAPI):
     try:
         if otel_enabled:
             start_metrics_server()
+        await chaos.start()
         yield
     finally:
+        await chaos.stop()
         await app.state.catalog_client.aclose()
         await engine.dispose()
         stop_telemetry()
@@ -81,6 +94,12 @@ if otel_enabled:
         excluded_urls="health/live,health/ready",
         server_request_hook=sanitize_server_span,
     )
+
+
+# El último middleware registrado es el más externo: el caos queda dentro del logging.
+@app.middleware("http")
+async def chaos_middleware(request: Request, call_next):
+    return await chaos.middleware(request, call_next)
 
 
 @app.middleware("http")
@@ -131,6 +150,56 @@ async def get_catalog_product(request: Request, product_id: UUID) -> CatalogProd
                        else "El catálogo no está disponible.") from error
 
 
+def _log_event(event: str, request: Request, **fields) -> None:
+    logger.warning(
+        json.dumps(
+            {
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "level": "WARNING",
+                "service": "orders",
+                "event": event,
+                "request_id": request.state.request_id,
+                **fields,
+            },
+            separators=(",", ":"),
+        )
+    )
+
+
+async def record_order_event(request: Request, order: Order) -> None:
+    """Registra el pedido en data-service sin alterar la respuesta del pedido (mejor esfuerzo)."""
+    base_url = request.app.state.data_base_url
+    if not base_url:
+        return
+    client: httpx.AsyncClient = request.app.state.catalog_client
+    with tracer.start_as_current_span("orders.data_record") as span:
+        reason = None
+        try:
+            async with asyncio.timeout(2.0):
+                response = await client.post(
+                    f"{base_url}/records",
+                    json={
+                        "order_id": str(order.id),
+                        "product_id": str(order.product_id),
+                        "quantity": order.quantity,
+                        "total": format(order.total, ".2f"),
+                    },
+                    headers={"X-Request-ID": request.state.request_id},
+                    timeout=httpx.Timeout(2.0),
+                )
+            if response.status_code not in (200, 201):
+                reason = f"status_{response.status_code}"
+        except (httpx.TimeoutException, TimeoutError):
+            reason = "timeout"
+        except httpx.HTTPError:
+            reason = "unavailable"
+        if reason:
+            span.set_attribute("app.data_record.failure", reason)
+            span.add_event("orders.data_record.failed", {"reason": reason})
+            data_record_failures.add(1, {"reason": reason})
+            _log_event("data_record_failed", request, order_id=str(order.id), reason=reason)
+
+
 @app.post(
     "/orders",
     response_model=OrderOut,
@@ -166,6 +235,7 @@ async def create_order(
             raise ApiError(
                 503, "database_unavailable", "La base de datos no está disponible."
             ) from error
+        await record_order_event(request, order)
         return OrderOut.model_validate(order)
 
 
@@ -185,6 +255,43 @@ async def list_orders(
     return OrderPage(
         items=[OrderOut.model_validate(order) for order in rows], limit=limit, offset=offset
     )
+
+
+@app.get(
+    "/orders/summary",
+    responses={422: {"model": ErrorEnvelope}, 502: {"model": ErrorEnvelope},
+               503: {"model": ErrorEnvelope}, 504: {"model": ErrorEnvelope},
+               500: {"model": ErrorEnvelope}},
+)
+async def orders_summary(
+    request: Request,
+    window_minutes: int = Query(default=60, ge=1, le=10_080),
+):
+    """Resumen de pedidos calculado por data-service sobre RDS (ruta pública de consulta)."""
+    base_url = request.app.state.data_base_url
+    if not base_url:
+        raise ApiError(503, "data_service_unavailable", "El servicio de datos no está configurado.")
+    client: httpx.AsyncClient = request.app.state.catalog_client
+    try:
+        async with asyncio.timeout(3.0):
+            response = await client.get(
+                f"{base_url}/reports/summary",
+                params={"window_minutes": window_minutes},
+                headers={"X-Request-ID": request.state.request_id},
+                timeout=httpx.Timeout(3.0),
+            )
+    except (httpx.TimeoutException, TimeoutError) as error:
+        raise ApiError(504, "data_service_timeout", "El servicio de datos tardó demasiado.") from error
+    except httpx.HTTPError as error:
+        raise ApiError(503, "data_service_unavailable", "El servicio de datos no está disponible.") from error
+    if response.status_code >= 500:
+        raise ApiError(503, "data_service_unavailable", "El servicio de datos no está disponible.")
+    if response.status_code != 200:
+        raise ApiError(502, "data_service_invalid_response", "El servicio de datos devolvió una respuesta inválida.")
+    try:
+        return JSONResponse(status_code=200, content=response.json())
+    except ValueError as error:
+        raise ApiError(502, "data_service_invalid_response", "El servicio de datos devolvió una respuesta inválida.") from error
 
 
 @app.get(

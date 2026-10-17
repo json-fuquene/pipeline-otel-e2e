@@ -1,0 +1,10 @@
+# Copiar a terraform.tfvars (no versionado) y ajustar.
+aws_region    = "us-east-1"
+allowed_cidr  = "181.61.246.55/32" # IP pública propia /32 (curl -s https://checkip.amazonaws.com)
+image_tag     = "obs-v1"
+desired_count = 1
+alert_email   = "" # opcional: correo para alertas enriquecidas
+
+# Si la cuenta ya tiene Security Hub/Inspector habilitados, desactivar para evitar conflictos:
+# enable_security_hub = false
+# enable_inspector    = false

@@ -1,0 +1,657 @@
+{
+  "uid": "id003-security",
+  "title": "ID-003 · Golden Signals de Seguridad",
+  "tags": [
+    "ID-003",
+    "security"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Intentos de autenticación fallidos (Grafana, 5 min)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "FailedAuthAttempts",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "300",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "fallidos",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "CVEs activos por severidad (Inspector → Security Hub)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveCVEs",
+          "dimensions": {
+            "severity": "CRITICAL"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "CRITICAL",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveCVEs",
+          "dimensions": {
+            "severity": "HIGH"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "HIGH",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveCVEs",
+          "dimensions": {
+            "severity": "MEDIUM"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "MEDIUM",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveCVEs",
+          "dimensions": {
+            "severity": "LOW"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "LOW",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Flujos rechazados (5 min)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "RejectedFlows",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "300",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "REJECT",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Tráfico norte-sur vs este-oeste",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "total",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "AcceptedBytes",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "ew",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Network",
+          "metricName": "EastWestBytes",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "E-W",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "ns",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "total - ew",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "N-S",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Intentos de autenticación fallidos en el tiempo",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "FailedAuthAttempts",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "fallidos",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Hallazgos activos por severidad (todos los productos)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveFindings",
+          "dimensions": {
+            "severity": "CRITICAL"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "CRITICAL",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveFindings",
+          "dimensions": {
+            "severity": "HIGH"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "HIGH",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveFindings",
+          "dimensions": {
+            "severity": "MEDIUM"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "MEDIUM",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Security",
+          "metricName": "ActiveFindings",
+          "dimensions": {
+            "severity": "LOW"
+          },
+          "matchExact": true,
+          "statistic": "Maximum",
+          "period": "900",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "LOW",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Top orígenes rechazados",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Logs",
+          "logsMode": "Logs",
+          "queryLanguage": "CWLI",
+          "queryType": "range",
+          "logGroupNames": [
+            "/vpc/pipeline-otel-obs/flow-logs"
+          ],
+          "expression": "parse @message \"* * * * * * * * * * * * * * * * *\" as version, account, eni, srcaddr, dstaddr, srcport, dstport, protocol, packets, bytes, start, end, action, status, pkt_src, pkt_dst, direction | filter action = \"REJECT\" | stats count(*) as flows by srcaddr, dstport | sort flows desc | limit 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Últimos hallazgos HIGH/CRITICAL/MEDIUM de Security Hub",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Logs",
+          "logsMode": "Logs",
+          "queryLanguage": "CWLI",
+          "queryType": "range",
+          "logGroupNames": [
+            "/aws/events/pipeline-otel-obs/security-findings"
+          ],
+          "expression": "fields @timestamp, detail.findings.0.Severity.Label as severity, detail.findings.0.Title as title, detail.findings.0.ProductName as product, detail.findings.0.Resources.0.Id as resource | sort @timestamp desc | limit 30"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

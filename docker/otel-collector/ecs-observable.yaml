@@ -1,0 +1,102 @@
+# Collector del laboratorio observable (ID-003). Recibe OTLP de los tres microservicios por
+# ECS Service Connect y obtiene sus métricas Prometheus por los alias *-metrics del namespace.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: catalog
+          scrape_interval: 15s
+          static_configs:
+            - targets: [catalog-metrics:9464]
+        - job_name: orders
+          scrape_interval: 15s
+          static_configs:
+            - targets: [orders-metrics:9465]
+        - job_name: data-service
+          scrape_interval: 15s
+          static_configs:
+            - targets: [data-service-metrics:9466]
+        - job_name: otel-collector-self
+          scrape_interval: 30s
+          static_configs:
+            - targets: [127.0.0.1:18888]
+
+connectors:
+  # Grafo de servicios L7 derivado de las trazas (aristas cliente→servidor y hacia PostgreSQL).
+  servicegraph:
+    latency_histogram_buckets: [10ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s]
+    store:
+      ttl: 10s
+      max_items: 2000
+    virtual_node_peer_attributes: [db.system.name, db.namespace, server.address]
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 320
+    spike_limit_mib: 80
+  resource:
+    attributes:
+      - key: deployment.environment.name
+        value: ${env:DEPLOYMENT_ENVIRONMENT}
+        action: upsert
+      - key: cloud.provider
+        value: aws
+        action: upsert
+      - key: cloud.platform
+        value: aws_ecs
+        action: upsert
+      - key: cloud.region
+        value: ${env:AWS_REGION}
+        action: upsert
+  batch:
+    timeout: 2s
+    send_batch_size: 512
+
+exporters:
+  otlp/jaeger:
+    endpoint: 127.0.0.1:14317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: pipeline
+  awscloudwatchlogs:
+    log_group_name: ${env:OTEL_LOG_GROUP}
+    log_stream_name: otel
+    region: ${env:AWS_REGION}
+    raw_log: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 127.0.0.1
+                port: 18888
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/jaeger, servicegraph]
+    metrics:
+      receivers: [otlp, prometheus, servicegraph]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [awscloudwatchlogs]

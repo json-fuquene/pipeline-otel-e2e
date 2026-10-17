@@ -1,0 +1,4 @@
+FROM grafana/grafana:12.2.0
+
+COPY --chown=472:0 docker/grafana/provisioning-observable/ /etc/grafana/provisioning/
+COPY --chown=472:0 docker/grafana/dashboards-observable/ /var/lib/grafana/dashboards/

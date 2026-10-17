@@ -39,3 +39,14 @@
 - Para una comparación más robusta, ejecutar al menos tres rondas por variante con los mismos parámetros y alternancia; conservar resultados crudos y metadatos, y reportar la dispersión. No declarar resultados ni conclusiones hasta ejecutar el benchmark.
 - Estado: mediciones pendientes. Instala Docker Compose y k6, prepara `.env` mediante `python3 scripts/init-local-env.py`, libera los puertos 8001/8002 y ejecuta `scripts/benchmark/run-overhead.sh`. El runner genera archivos de datos en `artifacts/overhead/`; las capturas de imagen las toma el usuario y no forman parte de la ejecución.
 - Especificación y procedimiento: [`04-analisis-overhead.md`](specs/ID-002-observabilidad-otel/04-analisis-overhead.md).
+
+## Actividad 3.3 — Sistema observable completo (ID-003)
+
+Plan SDD: [`specs/ID-003-sistema-observable/`](specs/ID-003-sistema-observable/00-especificacion.md). Alcance acordado: despliegue y validación solo en AWS; GCP como IaC de referencia (`infra/gcp-observable`).
+
+- **Módulo A — Arquitectura observable:** `data-service` (Python/FastAPI) sobre Amazon RDS PostgreSQL 17 con spans OTel DB semconv estables; tres servicios ECS con ECS Service Connect como malla L7 (AWS App Mesh sin soporte desde 30-09-2026). Fase [01](specs/ID-003-sistema-observable/01-arquitectura-data-service.md).
+- **Módulo B — AIOps:** CloudWatch anomaly detection (banda 2σ) + DevOps Guru sobre data-service/RDS; regla `error_rate > baseline + 2σ AND latency_p99 > SLO` como alarma compuesta → Lambda que adjunta `trace_id`; reporte de ruido estático vs. AIOps. Fase [02](specs/ID-003-sistema-observable/02-aiops-correlacion.md).
+- **Módulo C — Red y seguridad:** VPC Flow Logs (N-S/E-W, rechazos, anomalía E-W), Security Hub FSBP, Inspector ECR y dashboard «Golden Signals de Seguridad». Fase [03](specs/ID-003-sistema-observable/03-red-seguridad.md).
+- **Módulo D — Caos:** latencia 200 ms en catalog y 10 % de errores en data-service vía parámetros SSM; MTTD objetivo ≤ 2 min, SLO y error budget por experimento. Fase [04](specs/ID-003-sistema-observable/04-caos-mttd.md).
+- **Módulo E — Madurez:** autoevaluación en 8 dominios (escala 1–5) y roadmap a 3 meses. Fase [05](specs/ID-003-sistema-observable/05-madurez-roadmap.md).
+- Runbook de despliegue y experimentos: [`infra/aws-observable/README.md`](infra/aws-observable/README.md).

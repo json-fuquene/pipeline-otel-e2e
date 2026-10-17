@@ -1,0 +1,658 @@
+{
+  "uid": "id003-aiops",
+  "title": "ID-003 · AIOps: anomalías, correlación y alertas",
+  "tags": [
+    "ID-003",
+    "aiops"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "data-service: tasa de error vs banda esperada (2σ)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "req",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "RequestCount",
+          "dimensions": {
+            "service": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "err",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "ServerErrorCount",
+          "dimensions": {
+            "service": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "rate",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "100 * FILL(err, 0) / req",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "error rate %",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "band",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "ANOMALY_DETECTION_BAND(rate, 2)",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "banda 2σ",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "data-service: latencia p99 vs SLO 300 ms y banda 2σ",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "p99",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "RequestLatency",
+          "dimensions": {
+            "service": "data-service"
+          },
+          "matchExact": true,
+          "statistic": "p99",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "p99",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "band",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "ANOMALY_DETECTION_BAND(p99, 2)",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "banda 2σ",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "catalog: tasa de error vs banda esperada (2σ)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "req",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "RequestCount",
+          "dimensions": {
+            "service": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "err",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "ServerErrorCount",
+          "dimensions": {
+            "service": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "",
+          "logGroups": [],
+          "hide": true
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "rate",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "100 * FILL(err, 0) / req",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "error rate %",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "band",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "ANOMALY_DETECTION_BAND(rate, 2)",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "banda 2σ",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "catalog: latencia p99 vs SLO 150 ms y banda 2σ",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "p99",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/Services",
+          "metricName": "RequestLatency",
+          "dimensions": {
+            "service": "catalog"
+          },
+          "matchExact": true,
+          "statistic": "p99",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "p99",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "band",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "expression": "ANOMALY_DETECTION_BAND(p99, 2)",
+          "namespace": "",
+          "metricName": "",
+          "dimensions": {},
+          "matchExact": true,
+          "statistic": "Average",
+          "period": "60",
+          "sqlExpression": "",
+          "label": "banda 2σ",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 150
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Alertas enriquecidas emitidas (por tipo)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/AIOps",
+          "metricName": "EnrichedAlerts",
+          "dimensions": {
+            "kind": "correlated",
+            "service": "*"
+          },
+          "matchExact": false,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "correlated",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "B",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/AIOps",
+          "metricName": "EnrichedAlerts",
+          "dimensions": {
+            "kind": "latency",
+            "service": "*"
+          },
+          "matchExact": false,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "latency",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "C",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/AIOps",
+          "metricName": "EnrichedAlerts",
+          "dimensions": {
+            "kind": "network",
+            "service": "*"
+          },
+          "matchExact": false,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "network",
+          "logGroups": [],
+          "hide": false
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "D",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "namespace": "PipelineOtel/AIOps",
+          "metricName": "EnrichedAlerts",
+          "dimensions": {
+            "kind": "security",
+            "service": "*"
+          },
+          "matchExact": false,
+          "statistic": "Sum",
+          "period": "60",
+          "expression": "",
+          "sqlExpression": "",
+          "label": "security",
+          "logGroups": [],
+          "hide": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "xTickLabelRotation": -45
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Alertas enriquecidas (trace_id, estado y accionabilidad)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 16,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Logs",
+          "logsMode": "Logs",
+          "queryLanguage": "CWLI",
+          "queryType": "range",
+          "logGroupNames": [
+            "/aws/lambda/pipeline-otel-obs-alert-enricher"
+          ],
+          "expression": "fields @timestamp, alarm, state, service, kind, primary_trace_id, actionable, enrichment_seconds | filter type = \"enriched_alert\" | sort @timestamp desc | limit 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Cambios de configuración de caos (inicio/fin de experimentos)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "cloudwatch"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "cloudwatch"
+          },
+          "refId": "A",
+          "id": "",
+          "region": "us-east-1",
+          "queryMode": "Logs",
+          "logsMode": "Logs",
+          "queryLanguage": "CWLI",
+          "queryType": "range",
+          "logGroupNames": [
+            "/pipeline-otel/pipeline-otel-obs"
+          ],
+          "expression": "fields @timestamp, service, event, current.latency_ms, current.error_rate, current.error_delay_ms, current.experiment | filter event = \"chaos_config_changed\" | sort @timestamp desc | limit 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

@@ -9,6 +9,20 @@ class ConfigurationError(RuntimeError):
     """La configuración requerida está incompleta o no es válida."""
 
 
+SSL_MODES = frozenset({"disable", "allow", "prefer", "require", "verify-ca", "verify-full"})
+
+
+def connection_query(application_name: str) -> dict[str, str]:
+    """Parámetros de conexión; DB_SSLMODE permite exigir TLS contra Amazon RDS."""
+    query = {"application_name": application_name}
+    sslmode = os.getenv("DB_SSLMODE", "").strip()
+    if sslmode:
+        if sslmode not in SSL_MODES:
+            raise ConfigurationError("La configuración sslmode no es válida.")
+        query["sslmode"] = sslmode
+    return query
+
+
 def database_url() -> str:
     values = {
         "host": os.getenv("DB_HOST", "postgres"),
@@ -34,5 +48,5 @@ def database_url() -> str:
         host=values["host"],
         port=port,
         database=values["database"],
-        query={"application_name": "catalog"},
+        query=connection_query("catalog"),
     ).render_as_string(hide_password=False)
