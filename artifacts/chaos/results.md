@@ -7,7 +7,7 @@
 
 <br><br>
 
-## Jeisson Fuquene<br>Santiago Amaya
+## Jeisson Fuquene<br>Santiago López Amaya
 
 <br><br>
 
