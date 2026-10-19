@@ -6,6 +6,13 @@ Ejemplo de APIs independientes con FastAPI. La actividad 3.3 (ID-003) agrega `da
 
 Sistema observable completo desplegado en AWS: tres microservicios instrumentados con OpenTelemetry, malla L7, AIOps con correlación, observabilidad de red y seguridad, experimentos de caos con MTTD y reporte de madurez.
 
+**Autores**
+
+- Santiago López Amaya · santiagoloam@unisabana.edu.co
+- Jeisson Alejandro Fúquene Buitrago · jeissonfubu@unisabana.edu.co
+
+Maestría en Arquitectura de Software · Observabilidad en ambientes productivos · Universidad de La Sabana · Profesora: María Ochoa
+
 | Entregable | Ubicación |
 |---|---|
 | Reporte ejecutivo (PDF, 10 páginas) | [`docs/actividad-3.3/Informe_Actividad_3.3.pdf`](docs/actividad-3.3/Informe_Actividad_3.3.pdf) |
