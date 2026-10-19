@@ -2,6 +2,91 @@
 
 Ejemplo de APIs independientes con FastAPI. La actividad 3.3 (ID-003) agrega `data-service` y el sistema observable completo en AWS; ver [Sistema observable (ID-003)](#sistema-observable-id-003).
 
+## Entrega · Actividad 3.3
+
+Sistema observable completo desplegado en AWS: tres microservicios instrumentados con OpenTelemetry, malla L7, AIOps con correlación, observabilidad de red y seguridad, experimentos de caos con MTTD y reporte de madurez.
+
+| Entregable | Ubicación |
+|---|---|
+| Reporte ejecutivo (PDF, 10 páginas) | [`docs/actividad-3.3/Informe_Actividad_3.3.pdf`](docs/actividad-3.3/Informe_Actividad_3.3.pdf) |
+| Diagramas de arquitectura (Mermaid) | [`docs/actividad-3.3/arquitectura-observable.md`](docs/actividad-3.3/arquitectura-observable.md) |
+| Evidencias (capturas) | [`docs/actividad-3.3/evidencias/`](docs/actividad-3.3/evidencias/) |
+| Resultados de los experimentos de caos | [`artifacts/chaos/`](artifacts/chaos/) |
+| Especificación y fases (SDD) | [`specs/ID-003-sistema-observable/`](specs/ID-003-sistema-observable/00-especificacion.md) |
+
+### Infraestructura como código
+
+| Componente | Ruta |
+|---|---|
+| Composición del entorno AWS (Terraform) | [`infra/aws-observable/`](infra/aws-observable/README.md) |
+| Red: VPC, subredes, security groups y VPC Flow Logs | [`infra/tf_modules/vpc-observable/`](infra/tf_modules/vpc-observable/) |
+| Base de datos: Amazon RDS PostgreSQL con TLS obligatorio | [`infra/tf_modules/rds/`](infra/tf_modules/rds/) |
+| Cómputo: ECS Fargate, ECS Service Connect (malla L7) y parámetros SSM de caos | [`infra/tf_modules/ecs-observable/`](infra/tf_modules/ecs-observable/) |
+| AIOps: metric filters, bandas 2σ, alarmas compuestas, SNS, Lambda y DevOps Guru | [`infra/tf_modules/aiops/`](infra/tf_modules/aiops/) |
+| Seguridad: Security Hub, Inspector, EventBridge y Golden Signals | [`infra/tf_modules/security-observability/`](infra/tf_modules/security-observability/) |
+| Repositorios de imágenes | [`infra/tf_modules/ecr/`](infra/tf_modules/ecr/) |
+| Funciones Lambda (alerta enriquecida con `trace_id`, métricas de CVEs) | [`infra/lambda/`](infra/lambda/) |
+
+### Código de instrumentación
+
+| Componente | Ruta |
+|---|---|
+| Servicios `catalog`, `orders` y `data-service` (OTel SDK: trazas, métricas y logs con `trace_id`) | [`services/`](services/) |
+| Convenciones semánticas de base de datos estables y spans DB | [`services/data/app/db_semconv.py`](services/data/app/db_semconv.py) |
+| Middleware de inyección de fallas (latencia y errores vía SSM) | [`services/shared/chaos.py`](services/shared/chaos.py) |
+| Pruebas automatizadas (caos, DB semconv, AIOps) | [`tests/`](tests/) |
+
+### Configuraciones
+
+| Componente | Ruta |
+|---|---|
+| OpenTelemetry Collector (`servicegraph`, exportador a CloudWatch Logs) | [`docker/otel-collector/ecs-observable.yaml`](docker/otel-collector/ecs-observable.yaml) |
+| Prometheus y reglas SLI/SLO (error budget, burn rate) | [`docker/prometheus/`](docker/prometheus/) |
+| Grafana: datasources y dashboards (Servicios y SLO, AIOps, Red L7, Golden Signals de Seguridad) | [`docker/grafana/`](docker/grafana/) |
+| Entorno local con Compose | [`compose.yaml`](compose.yaml) |
+
+### Scripts
+
+| Script | Uso |
+|---|---|
+| [`scripts/push-ecs-images.py`](scripts/push-ecs-images.py) | Construye y publica las imágenes en ECR (`--profile observable`). |
+| [`scripts/aws/endpoints.py`](scripts/aws/endpoints.py) | Obtiene las URLs públicas de servicios, Grafana, Jaeger y Prometheus. |
+| [`scripts/load/steady.js`](scripts/load/steady.js) | Carga constante con k6 para la línea base. |
+| [`scripts/chaos/run_experiment.py`](scripts/chaos/run_experiment.py) | Ejecuta los experimentos (`exp1-latency-catalog`, `exp2-errors-data`), mide MTTD, SLO y error budget, y revierte la falla. |
+| [`scripts/aiops/noise_report.py`](scripts/aiops/noise_report.py) | Compara notificaciones de umbrales estáticos frente a la regla correlacionada. |
+| [`scripts/security/generate_security_signals.py`](scripts/security/generate_security_signals.py) | Genera logins fallidos y sondeo de puertos para validar las alertas de seguridad. |
+| [`scripts/grafana/build_dashboards.py`](scripts/grafana/build_dashboards.py) | Genera los dashboards de Grafana como código. |
+
+### Resultados
+
+| Experimento | Falla | Primera alarma (MTTD) | SLO |
+|---|---|---|---|
+| 1 · catalog | +200 ms de latencia | `catalog-p99-slo` en 61,5 s | p99 de 48,5 ms → 249,5 ms (SLO 150 ms) |
+| 2 · data-service | 10 % de errores 503 | `data-service-static-error-rate` en 69,6 s | Disponibilidad de 100 % → 89,86 % (SLO 99 %) |
+
+Ambos experimentos cumplen el objetivo de MTTD ≤ 2 minutos. El análisis de error budget, la autoevaluación de madurez en 8 dominios y el roadmap a 3 meses están en el reporte ejecutivo.
+
+### Reproducir
+
+```sh
+cd infra/aws-observable
+cp terraform.tfvars.example terraform.tfvars          # ajustar allowed_cidr (IP propia /32)
+terraform init
+terraform apply -target=module.ecr                    # 1) solo repositorios
+mkdir -p ../../artifacts/aws
+terraform output -json ecr_urls > ../../artifacts/aws/ecr_urls.json
+cd ../..
+python3 scripts/push-ecs-images.py us-east-1 artifacts/aws/ecr_urls.json obs-v1 --profile observable
+terraform -chdir=infra/aws-observable apply           # 2) red, RDS, ECS, AIOps, seguridad
+terraform -chdir=infra/aws-observable output -json lab_config > artifacts/aws/lab_config.json
+python3 scripts/aws/endpoints.py artifacts/aws/lab_config.json
+python3 scripts/chaos/run_experiment.py exp1-latency-catalog --config artifacts/aws/lab_config.json --prometheus http://IP:9090
+python3 scripts/chaos/run_experiment.py exp2-errors-data --config artifacts/aws/lab_config.json --prometheus http://IP:9090
+terraform -chdir=infra/aws-observable destroy         # limpieza
+```
+
+La guía completa está en [`infra/aws-observable/README.md`](infra/aws-observable/README.md).
+
 Ejemplo de dos APIs independientes con FastAPI. Catálogo administra productos; pedidos valida cada producto por HTTP y conserva una copia de sus datos. Ambos servicios escriben en esquemas PostgreSQL propios.
 
 ## Requisitos
